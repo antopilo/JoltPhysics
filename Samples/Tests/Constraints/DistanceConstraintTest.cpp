@@ -1,3 +1,4 @@
+// Jolt Physics Library (https://github.com/jrouwe/JoltPhysics)
 // SPDX-FileCopyrightText: 2021 Jorrit Rouwe
 // SPDX-License-Identifier: MIT
 
@@ -27,7 +28,7 @@ void DistanceConstraintTest::Initialize()
 	{
 		// Bodies attached through distance constraints
 		Quat rotation = Quat::sRotation(Vec3::sAxisZ(), 0.5f * JPH_PI);
-		Vec3 position(0, 75, 10.0f * variation);
+		RVec3 position(0, 75, 10.0f * variation);
 		Body &top = *mBodyInterface->CreateBody(BodyCreationSettings(new CapsuleShape(half_cylinder_height, 1), position, rotation, EMotionType::Static, Layers::NON_MOVING));
 		mBodyInterface->AddBody(top.GetID(), EActivation::DontActivate);
 

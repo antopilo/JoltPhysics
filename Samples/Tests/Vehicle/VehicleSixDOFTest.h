@@ -1,3 +1,4 @@
+// Jolt Physics Library (https://github.com/jrouwe/JoltPhysics)
 // SPDX-FileCopyrightText: 2021 Jorrit Rouwe
 // SPDX-License-Identifier: MIT
 
@@ -10,14 +11,14 @@
 class VehicleSixDOFTest : public VehicleTest
 {
 public:
-	JPH_DECLARE_RTTI_VIRTUAL(VehicleSixDOFTest)
+	JPH_DECLARE_RTTI_VIRTUAL(JPH_NO_EXPORT, VehicleSixDOFTest)
 
 	// See: Test
 	virtual void			Initialize() override;
 	virtual void			PrePhysicsUpdate(const PreUpdateParams &inParams) override;
 
 	virtual void			GetInitialCamera(CameraState &ioState) const override;
-	virtual Mat44			GetCameraPivot(float inCameraHeading, float inCameraPitch) const override;
+	virtual RMat44			GetCameraPivot(float inCameraHeading, float inCameraPitch) const override;
 
 private:
 	static constexpr float	cMaxSteeringAngle = DegreesToRadians(30);

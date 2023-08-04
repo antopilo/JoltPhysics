@@ -1,3 +1,4 @@
+// Jolt Physics Library (https://github.com/jrouwe/JoltPhysics)
 // SPDX-FileCopyrightText: 2021 Jorrit Rouwe
 // SPDX-License-Identifier: MIT
 
@@ -7,7 +8,7 @@
 
 JPH_NAMESPACE_BEGIN
 
-class [[nodiscard]] alignas(16) UVec4
+class [[nodiscard]] alignas(JPH_VECTOR_ALIGNMENT) UVec4
 {
 public:
 	JPH_OVERRIDE_NEW_DELETE
@@ -24,6 +25,7 @@ public:
 	/// Constructor
 								UVec4() = default; ///< Intentionally not initialized for performance reasons
 								UVec4(const UVec4 &inRHS) = default;
+	UVec4 &						operator = (const UVec4 &inRHS) = default;
 	JPH_INLINE					UVec4(Type inRHS) : mValue(inRHS)					{ }
 
 	/// Create a vector from 4 integer components
@@ -209,9 +211,6 @@ public:
 		Type					mValue;
 		uint32					mU32[4];
 	};
-
-private:
-	static const UVec4			sFourMinusXShuffle[];
 };
 
 static_assert(is_trivial<UVec4>(), "Is supposed to be a trivial type!");

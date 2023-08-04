@@ -1,3 +1,4 @@
+// Jolt Physics Library (https://github.com/jrouwe/JoltPhysics)
 // SPDX-FileCopyrightText: 2021 Jorrit Rouwe
 // SPDX-License-Identifier: MIT
 
@@ -33,8 +34,12 @@ const char *RigPileTest::sScenes[] =
 
 #ifdef _DEBUG
 	const char *RigPileTest::sSceneName = "PerlinMesh";
+	int RigPileTest::sPileSize = 5;
+	int RigPileTest::sNumPilesPerAxis = 2;
 #else
 	const char *RigPileTest::sSceneName = "Terrain1";
+	int RigPileTest::sPileSize = 10;
+	int RigPileTest::sNumPilesPerAxis = 4;
 #endif
 
 RigPileTest::~RigPileTest()
@@ -81,34 +86,28 @@ void RigPileTest::Initialize()
 
 	const float cHorizontalSeparation = 4.0f;
 	const float cVerticalSeparation = 0.6f;
-#ifdef _DEBUG
-	const int cPileSize = 5;
-	const int cNumRows = 2;
-	const int cNumCols = 2;
-#else
-	const int cPileSize = 10;
-	const int cNumRows = 4;
-	const int cNumCols = 4;
-#endif
+
+	// Limit the size of the piles so we don't go over 160 ragdolls
+	int pile_size = min(sPileSize, 160 / Square(sNumPilesPerAxis));
 
 	// Create piles
 	default_random_engine random;
 	uniform_real_distribution<float> angle(0.0f, JPH_PI);
 	CollisionGroup::GroupID group_id = 1;
-	for (int row = 0; row < cNumRows; ++row)
-		for (int col = 0; col < cNumCols; ++col)
+	for (int row = 0; row < sNumPilesPerAxis; ++row)
+		for (int col = 0; col < sNumPilesPerAxis; ++col)
 		{
 			// Determine start location of ray
-			Vec3 start = Vec3(cHorizontalSeparation * (col - (cNumCols - 1) / 2.0f), 100, cHorizontalSeparation * (row - (cNumRows - 1) / 2.0f));
+			RVec3 start = RVec3(cHorizontalSeparation * (col - (sNumPilesPerAxis - 1) / 2.0f), 100, cHorizontalSeparation * (row - (sNumPilesPerAxis - 1) / 2.0f));
 
 			// Cast ray down to terrain
 			RayCastResult hit;
 			Vec3 ray_direction(0, -200, 0);
-			RayCast ray { start, ray_direction };
+			RRayCast ray { start, ray_direction };
 			if (mPhysicsSystem->GetNarrowPhaseQuery().CastRay(ray, hit, SpecifiedBroadPhaseLayerFilter(BroadPhaseLayers::NON_MOVING), SpecifiedObjectLayerFilter(Layers::NON_MOVING)))
-				start = start + hit.mFraction * ray_direction;
+				start = ray.GetPointOnRay(hit.mFraction);
 
-			for (int i = 0; i < cPileSize; ++i)
+			for (int i = 0; i < pile_size; ++i)
 			{
 				// Create ragdoll
 				Ref<Ragdoll> ragdoll = settings->CreateRagdoll(group_id++, 0, mPhysicsSystem);
@@ -119,8 +118,9 @@ void RigPileTest::Initialize()
 				animation[random() % cAnimationCount]->Sample(0.0f, pose);
 
 				// Override root
+				pose.SetRootOffset(start);
 				SkeletonPose::JointState &root = pose.GetJoint(0);
-				root.mTranslation = start + Vec3(0, cVerticalSeparation * (i + 1), 0);
+				root.mTranslation = Vec3(0, cVerticalSeparation * (i + 1), 0);
 				root.mRotation = Quat::sRotation(Vec3::sAxisY(), angle(random)) * root.mRotation;
 				pose.CalculateJointMatrices();
 
@@ -142,5 +142,7 @@ void RigPileTest::CreateSettingsMenu(DebugUI *inUI, UIElement *inSubMenu)
 			inUI->CreateTextButton(scene_name, sScenes[i], [this, i]() { sSceneName = sScenes[i]; RestartTest(); });
 		inUI->ShowMenu(scene_name);
 	});
-}
 
+	inUI->CreateSlider(inSubMenu, "Num Ragdolls Per Pile", float(sPileSize), 1, 160, 1, [](float inValue) { sPileSize = (int)inValue; });
+	inUI->CreateSlider(inSubMenu, "Num Piles Per Axis", float(sNumPilesPerAxis), 1, 4, 1, [](float inValue) { sNumPilesPerAxis = (int)inValue; });
+}

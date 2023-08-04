@@ -1,3 +1,4 @@
+// Jolt Physics Library (https://github.com/jrouwe/JoltPhysics)
 // SPDX-FileCopyrightText: 2021 Jorrit Rouwe
 // SPDX-License-Identifier: MIT
 
@@ -85,12 +86,12 @@ MassProperties CompoundShape::GetMassProperties() const
 
 	// Ensure that inertia is a 3x3 matrix, adding inertias causes the bottom right element to change
 	p.mInertia.SetColumn4(3, Vec4(0, 0, 0, 1));
-	
+
 	return p;
 }
 
 AABox CompoundShape::GetWorldSpaceBounds(Mat44Arg inCenterOfMassTransform, Vec3Arg inScale) const
-{ 
+{
 	if (mSubShapes.size() <= 10)
 	{
 		AABox bounds;
@@ -150,13 +151,13 @@ TransformedShape CompoundShape::GetSubShapeTransformedShape(const SubShapeID &in
 	Vec3 scale = sub_shape.TransformScale(inScale);
 
 	// Return transformed shape
-	TransformedShape ts(position, rotation, sub_shape.mShape, BodyID());
+	TransformedShape ts(RVec3(position), rotation, sub_shape.mShape, BodyID());
 	ts.SetShapeScale(scale);
 	return ts;
 }
 
-Vec3 CompoundShape::GetSurfaceNormal(const SubShapeID &inSubShapeID, Vec3Arg inLocalSurfacePosition) const 
-{ 
+Vec3 CompoundShape::GetSurfaceNormal(const SubShapeID &inSubShapeID, Vec3Arg inLocalSurfacePosition) const
+{
 	// Decode sub shape index
 	SubShapeID remainder;
 	uint32 index = GetSubShapeIndexFromID(inSubShapeID, remainder);
@@ -170,7 +171,19 @@ Vec3 CompoundShape::GetSurfaceNormal(const SubShapeID &inSubShapeID, Vec3Arg inL
 	return transform.Multiply3x3Transposed(normal);
 }
 
-void CompoundShape::GetSubmergedVolume(Mat44Arg inCenterOfMassTransform, Vec3Arg inScale, const Plane &inSurface, float &outTotalVolume, float &outSubmergedVolume, Vec3 &outCenterOfBuoyancy) const
+void CompoundShape::GetSupportingFace(const SubShapeID &inSubShapeID, Vec3Arg inDirection, Vec3Arg inScale, Mat44Arg inCenterOfMassTransform, SupportingFace &outVertices) const
+{
+	// Decode sub shape index
+	SubShapeID remainder;
+	uint32 index = GetSubShapeIndexFromID(inSubShapeID, remainder);
+
+	// Apply transform and pass on to sub shape
+	const SubShape &shape = mSubShapes[index];
+	Mat44 transform = shape.GetLocalTransformNoScale(inScale);
+	shape.mShape->GetSupportingFace(remainder, transform.Multiply3x3Transposed(inDirection), shape.TransformScale(inScale), inCenterOfMassTransform * transform, outVertices);
+}
+
+void CompoundShape::GetSubmergedVolume(Mat44Arg inCenterOfMassTransform, Vec3Arg inScale, const Plane &inSurface, float &outTotalVolume, float &outSubmergedVolume, Vec3 &outCenterOfBuoyancy JPH_IF_DEBUG_RENDERER(, RVec3Arg inBaseOffset)) const
 {
 	outTotalVolume = 0.0f;
 	outSubmergedVolume = 0.0f;
@@ -184,7 +197,7 @@ void CompoundShape::GetSubmergedVolume(Mat44Arg inCenterOfMassTransform, Vec3Arg
 		// Recurse to child
 		float total_volume, submerged_volume;
 		Vec3 center_of_buoyancy;
-		shape.mShape->GetSubmergedVolume(transform, shape.TransformScale(inScale), inSurface, total_volume, submerged_volume, center_of_buoyancy);
+		shape.mShape->GetSubmergedVolume(transform, shape.TransformScale(inScale), inSurface, total_volume, submerged_volume, center_of_buoyancy JPH_IF_DEBUG_RENDERER(, inBaseOffset));
 
 		// Accumulate volumes
 		outTotalVolume += total_volume;
@@ -200,12 +213,12 @@ void CompoundShape::GetSubmergedVolume(Mat44Arg inCenterOfMassTransform, Vec3Arg
 #ifdef JPH_DEBUG_RENDERER
 	// Draw senter of buoyancy
 	if (sDrawSubmergedVolumes)
-		DebugRenderer::sInstance->DrawWireSphere(outCenterOfBuoyancy, 0.05f, Color::sRed, 1);
+		DebugRenderer::sInstance->DrawWireSphere(inBaseOffset + outCenterOfBuoyancy, 0.05f, Color::sRed, 1);
 #endif // JPH_DEBUG_RENDERER
 }
 
 #ifdef JPH_DEBUG_RENDERER
-void CompoundShape::Draw(DebugRenderer *inRenderer, Mat44Arg inCenterOfMassTransform, Vec3Arg inScale, ColorArg inColor, bool inUseMaterialColors, bool inDrawWireframe) const
+void CompoundShape::Draw(DebugRenderer *inRenderer, RMat44Arg inCenterOfMassTransform, Vec3Arg inScale, ColorArg inColor, bool inUseMaterialColors, bool inDrawWireframe) const
 {
 	for (const SubShape &shape : mSubShapes)
 	{
@@ -214,7 +227,7 @@ void CompoundShape::Draw(DebugRenderer *inRenderer, Mat44Arg inCenterOfMassTrans
 	}
 }
 
-void CompoundShape::DrawGetSupportFunction(DebugRenderer *inRenderer, Mat44Arg inCenterOfMassTransform, Vec3Arg inScale, ColorArg inColor, bool inDrawSupportDirection) const
+void CompoundShape::DrawGetSupportFunction(DebugRenderer *inRenderer, RMat44Arg inCenterOfMassTransform, Vec3Arg inScale, ColorArg inColor, bool inDrawSupportDirection) const
 {
 	for (const SubShape &shape : mSubShapes)
 	{
@@ -223,7 +236,7 @@ void CompoundShape::DrawGetSupportFunction(DebugRenderer *inRenderer, Mat44Arg i
 	}
 }
 
-void CompoundShape::DrawGetSupportingFace(DebugRenderer *inRenderer, Mat44Arg inCenterOfMassTransform, Vec3Arg inScale) const
+void CompoundShape::DrawGetSupportingFace(DebugRenderer *inRenderer, RMat44Arg inCenterOfMassTransform, Vec3Arg inScale) const
 {
 	for (const SubShape &shape : mSubShapes)
 	{
@@ -232,6 +245,12 @@ void CompoundShape::DrawGetSupportingFace(DebugRenderer *inRenderer, Mat44Arg in
 	}
 }
 #endif // JPH_DEBUG_RENDERER
+
+void CompoundShape::CollideSoftBodyVertices(Mat44Arg inCenterOfMassTransform, Array<SoftBodyVertex> &ioVertices, float inDeltaTime, Vec3Arg inDisplacementDueToGravity, int inCollidingShapeIndex) const
+{
+	for (const SubShape &shape : mSubShapes)
+		shape.mShape->CollideSoftBodyVertices(inCenterOfMassTransform * Mat44::sRotationTranslation(shape.GetRotation(), shape.GetPositionCOM()), ioVertices, inDeltaTime, inDisplacementDueToGravity, inCollidingShapeIndex);
+}
 
 void CompoundShape::TransformShape(Mat44Arg inCenterOfMassTransform, TransformedShapeCollector &ioCollector) const
 {
@@ -322,7 +341,7 @@ void CompoundShape::RestoreBinaryState(StreamIn &inStream)
 }
 
 void CompoundShape::SaveSubShapeState(ShapeList &outSubShapes) const
-{ 
+{
 	outSubShapes.clear();
 	outSubShapes.reserve(mSubShapes.size());
 	for (const SubShape &shape : mSubShapes)
@@ -330,7 +349,7 @@ void CompoundShape::SaveSubShapeState(ShapeList &outSubShapes) const
 }
 
 void CompoundShape::RestoreSubShapeState(const ShapeRefC *inSubShapes, uint inNumShapes)
-{ 
+{
 	JPH_ASSERT(mSubShapes.size() == inNumShapes);
 	for (uint i = 0; i < inNumShapes; ++i)
 		mSubShapes[i].mShape = inSubShapes[i];

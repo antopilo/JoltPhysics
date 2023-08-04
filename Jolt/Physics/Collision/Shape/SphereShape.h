@@ -1,3 +1,4 @@
+// Jolt Physics Library (https://github.com/jrouwe/JoltPhysics)
 // SPDX-FileCopyrightText: 2021 Jorrit Rouwe
 // SPDX-License-Identifier: MIT
 
@@ -8,10 +9,10 @@
 JPH_NAMESPACE_BEGIN
 
 /// Class that constructs a SphereShape
-class SphereShapeSettings final : public ConvexShapeSettings
+class JPH_EXPORT SphereShapeSettings final : public ConvexShapeSettings
 {
 public:
-	JPH_DECLARE_SERIALIZABLE_VIRTUAL(SphereShapeSettings)
+	JPH_DECLARE_SERIALIZABLE_VIRTUAL(JPH_EXPORT, SphereShapeSettings)
 
 	/// Default constructor for deserialization
 							SphereShapeSettings() = default;
@@ -27,7 +28,7 @@ public:
 
 /// A sphere, centered around the origin.
 /// Note that it is implemented as a point with convex radius.
-class SphereShape final : public ConvexShape
+class JPH_EXPORT SphereShape final : public ConvexShape
 {
 public:
 	JPH_OVERRIDE_NEW_DELETE
@@ -44,9 +45,10 @@ public:
 
 	// See Shape::GetLocalBounds
 	virtual AABox			GetLocalBounds() const override;
-		
+
 	// See Shape::GetWorldSpaceBounds
 	virtual AABox			GetWorldSpaceBounds(Mat44Arg inCenterOfMassTransform, Vec3Arg inScale) const override;
+	using Shape::GetWorldSpaceBounds;
 
 	// See Shape::GetInnerRadius
 	virtual float			GetInnerRadius() const override														{ return mRadius; }
@@ -57,18 +59,18 @@ public:
 	// See Shape::GetSurfaceNormal
 	virtual Vec3			GetSurfaceNormal(const SubShapeID &inSubShapeID, Vec3Arg inLocalSurfacePosition) const override;
 
+	// See Shape::GetSupportingFace
+	virtual void			GetSupportingFace([[maybe_unused]] const SubShapeID &inSubShapeID, [[maybe_unused]] Vec3Arg inDirection, [[maybe_unused]] Vec3Arg inScale, [[maybe_unused]] Mat44Arg inCenterOfMassTransform, [[maybe_unused]] SupportingFace &outVertices) const override { /* Hit is always a single point, no point in returning anything */ }
+
 	// See ConvexShape::GetSupportFunction
 	virtual const Support *	GetSupportFunction(ESupportMode inMode, SupportBuffer &inBuffer, Vec3Arg inScale) const override;
 
-	// See ConvexShape::GetSupportingFace
-	virtual void			GetSupportingFace(Vec3Arg inDirection, Vec3Arg inScale, SupportingFace &outVertices) const override	{ /* Hit is always a single point, no point in returning anything */ }
-
 	// See Shape::GetSubmergedVolume
-	virtual void			GetSubmergedVolume(Mat44Arg inCenterOfMassTransform, Vec3Arg inScale, const Plane &inSurface, float &outTotalVolume, float &outSubmergedVolume, Vec3 &outCenterOfBuoyancy) const override;
+	virtual void			GetSubmergedVolume(Mat44Arg inCenterOfMassTransform, Vec3Arg inScale, const Plane &inSurface, float &outTotalVolume, float &outSubmergedVolume, Vec3 &outCenterOfBuoyancy JPH_IF_DEBUG_RENDERER(, RVec3Arg inBaseOffset)) const override;
 
 #ifdef JPH_DEBUG_RENDERER
 	// See Shape::Draw
-	virtual void			Draw(DebugRenderer *inRenderer, Mat44Arg inCenterOfMassTransform, Vec3Arg inScale, ColorArg inColor, bool inUseMaterialColors, bool inDrawWireframe) const override;
+	virtual void			Draw(DebugRenderer *inRenderer, RMat44Arg inCenterOfMassTransform, Vec3Arg inScale, ColorArg inColor, bool inUseMaterialColors, bool inDrawWireframe) const override;
 #endif // JPH_DEBUG_RENDERER
 
 	// See Shape::CastRay
@@ -77,6 +79,9 @@ public:
 
 	// See: Shape::CollidePoint
 	virtual void			CollidePoint(Vec3Arg inPoint, const SubShapeIDCreator &inSubShapeIDCreator, CollidePointCollector &ioCollector, const ShapeFilter &inShapeFilter = { }) const override;
+
+	// See: Shape::ColideSoftBodyVertices
+	virtual void			CollideSoftBodyVertices(Mat44Arg inCenterOfMassTransform, Array<SoftBodyVertex> &ioVertices, float inDeltaTime, Vec3Arg inDisplacementDueToGravity, int inCollidingShapeIndex) const override;
 
 	// See Shape::TransformShape
 	virtual void			TransformShape(Mat44Arg inCenterOfMassTransform, TransformedShapeCollector &ioCollector) const override;

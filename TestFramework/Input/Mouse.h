@@ -1,3 +1,4 @@
+// Jolt Physics Library (https://github.com/jrouwe/JoltPhysics)
 // SPDX-FileCopyrightText: 2021 Jorrit Rouwe
 // SPDX-License-Identifier: MIT
 
@@ -54,6 +55,7 @@ private:
 	ComPtr<IDirectInput8>			mDI;
 	ComPtr<IDirectInputDevice8>		mMouse;
 	DIMOUSESTATE					mMouseState;
+	bool							mMousePosInitialized = false;
 	POINT							mMousePos;
 	DIDEVICEOBJECTDATA				mDOD[BUFFERSIZE];
 	DWORD							mDODLength;

@@ -1,3 +1,4 @@
+// Jolt Physics Library (https://github.com/jrouwe/JoltPhysics)
 // SPDX-FileCopyrightText: 2021 Jorrit Rouwe
 // SPDX-License-Identifier: MIT
 
@@ -13,7 +14,7 @@ JPH_SUPPRESS_WARNINGS_STD_END
 
 JPH_NAMESPACE_BEGIN
 
-template <class T> using Deque = deque<T, STLAllocator<T>>;
+template <class T> using Deque = std::deque<T, STLAllocator<T>>;
 
 /// Conversion algorithm that converts an AABB tree to an optimized binary buffer
 template <class TriangleCodec, class NodeCodec>

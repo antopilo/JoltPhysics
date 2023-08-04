@@ -1,3 +1,4 @@
+// Jolt Physics Library (https://github.com/jrouwe/JoltPhysics)
 // SPDX-FileCopyrightText: 2021 Jorrit Rouwe
 // SPDX-License-Identifier: MIT
 
@@ -12,10 +13,10 @@
 JPH_NAMESPACE_BEGIN
 
 /// Hinge constraint settings, used to create a hinge constraint
-class HingeConstraintSettings final : public TwoBodyConstraintSettings
+class JPH_EXPORT HingeConstraintSettings final : public TwoBodyConstraintSettings
 {
 public:
-	JPH_DECLARE_SERIALIZABLE_VIRTUAL(HingeConstraintSettings)
+	JPH_DECLARE_SERIALIZABLE_VIRTUAL(JPH_EXPORT, HingeConstraintSettings)
 
 	// See: ConstraintSettings::SaveBinaryState
 	virtual void				SaveBinaryState(StreamOut &inStream) const override;
@@ -28,12 +29,12 @@ public:
 
 	/// Body 1 constraint reference frame (space determined by mSpace).
 	/// Hinge axis is the axis where rotation is allowed, normal axis defines the 0 angle of the hinge.
-	Vec3						mPoint1 = Vec3::sZero();
+	RVec3						mPoint1 = RVec3::sZero();
 	Vec3						mHingeAxis1 = Vec3::sAxisY();
 	Vec3						mNormalAxis1 = Vec3::sAxisX();
 	
 	/// Body 2 constraint reference frame (space determined by mSpace)
-	Vec3						mPoint2 = Vec3::sZero();
+	RVec3						mPoint2 = RVec3::sZero();
 	Vec3						mHingeAxis2 = Vec3::sAxisY();
 	Vec3						mNormalAxis2 = Vec3::sAxisX();
 	
@@ -41,6 +42,9 @@ public:
 	/// Both angles are in radians.
 	float						mLimitsMin = -JPH_PI;
 	float						mLimitsMax = JPH_PI;
+
+	/// When enabled, this makes the limits soft. When the constraint exceeds the limits, a spring force will pull it back.
+	SpringSettings				mLimitsSpringSettings;
 
 	/// Maximum amount of torque (N m) to apply as friction when the constraint is not powered by a motor
 	float						mMaxFrictionTorque = 0.0f;
@@ -54,7 +58,7 @@ protected:
 };
 
 /// A hinge constraint constrains 2 bodies on a single point and allows only a single axis of rotation
-class HingeConstraint final : public TwoBodyConstraint
+class JPH_EXPORT HingeConstraint final : public TwoBodyConstraint
 {
 public:
 	JPH_OVERRIDE_NEW_DELETE
@@ -64,6 +68,7 @@ public:
 
 	// Generic interface of a constraint
 	virtual EConstraintSubType	GetSubType() const override								{ return EConstraintSubType::Hinge; }
+	virtual void				NotifyShapeChanged(const BodyID &inBodyID, Vec3Arg inDeltaCOM) override;
 	virtual void				SetupVelocityConstraint(float inDeltaTime) override;
 	virtual void				WarmStartVelocityConstraint(float inWarmStartImpulseRatio) override;
 	virtual bool				SolveVelocityConstraint(float inDeltaTime) override;
@@ -105,7 +110,12 @@ public:
 	float						GetLimitsMax() const									{ return mLimitsMax; }
 	bool						HasLimits() const										{ return mHasLimits; }
 
-	///@name Get Lagrange multiplier from last physics update (relates to how much force/torque was applied to satisfy the constraint)
+	/// Update the limits spring settings
+	const SpringSettings &		GetLimitsSpringSettings() const							{ return mLimitsSpringSettings; }
+	SpringSettings &			GetLimitsSpringSettings()								{ return mLimitsSpringSettings; }
+	void						SetLimitsSpringSettings(const SpringSettings &inLimitsSpringSettings) { mLimitsSpringSettings = inLimitsSpringSettings; }
+
+	///@name Get Lagrange multiplier from last physics update (the linear/angular impulse applied to satisfy the constraint)
 	inline Vec3		 			GetTotalLambdaPosition() const							{ return mPointConstraintPart.GetTotalLambda(); }
 	inline Vector<2>			GetTotalLambdaRotation() const							{ return mRotationConstraintPart.GetTotalLambda(); }
 	inline float				GetTotalLambdaRotationLimits() const					{ return mRotationLimitsConstraintPart.GetTotalLambda(); }
@@ -139,6 +149,9 @@ private:
 	bool						mHasLimits;
 	float						mLimitsMin;
 	float						mLimitsMax;
+
+	// Soft constraint limits
+	SpringSettings				mLimitsSpringSettings;
 
 	// Friction
 	float						mMaxFrictionTorque;

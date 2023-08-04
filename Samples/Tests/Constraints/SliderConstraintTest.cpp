@@ -1,3 +1,4 @@
+// Jolt Physics Library (https://github.com/jrouwe/JoltPhysics)
 // SPDX-FileCopyrightText: 2021 Jorrit Rouwe
 // SPDX-License-Identifier: MIT
 
@@ -35,7 +36,7 @@ void SliderConstraintTest::Initialize()
 	// Bodies attached through slider constraints
 	for (int randomness = 0; randomness < 2; ++randomness)
 	{
-		Vec3 position(0, 25.0f, -randomness * 20.0f);
+		RVec3 position(0, 25.0f, -randomness * 20.0f);
 		Body &top = *mBodyInterface->CreateBody(BodyCreationSettings(box, position, Quat::sIdentity(), EMotionType::Static, Layers::NON_MOVING));
 		top.SetCollisionGroup(CollisionGroup(group_filter, group_id, 0));
 		mBodyInterface->AddBody(top.GetID(), EActivation::DontActivate);
@@ -80,13 +81,13 @@ void SliderConstraintTest::Initialize()
 
 	{
 		// Two light bodies attached to a heavy body (gives issues if the wrong anchor point is chosen)
-		Body *light1 = mBodyInterface->CreateBody(BodyCreationSettings(new BoxShape(Vec3::sReplicate(0.1f)), Vec3(-5.0f, 7.0f, -5.2f), Quat::sIdentity(), EMotionType::Dynamic, Layers::MOVING));
+		Body *light1 = mBodyInterface->CreateBody(BodyCreationSettings(new BoxShape(Vec3::sReplicate(0.1f)), RVec3(-5.0f, 7.0f, -5.2f), Quat::sIdentity(), EMotionType::Dynamic, Layers::MOVING));
 		light1->SetCollisionGroup(CollisionGroup(group_filter, group_id, 0));
 		mBodyInterface->AddBody(light1->GetID(), EActivation::Activate);
-		Body *heavy = mBodyInterface->CreateBody(BodyCreationSettings(new BoxShape(Vec3::sReplicate(5.0f)), Vec3(-5.0f, 7.0f, 0.0f), Quat::sIdentity(), EMotionType::Dynamic, Layers::MOVING));
+		Body *heavy = mBodyInterface->CreateBody(BodyCreationSettings(new BoxShape(Vec3::sReplicate(5.0f)), RVec3(-5.0f, 7.0f, 0.0f), Quat::sIdentity(), EMotionType::Dynamic, Layers::MOVING));
 		heavy->SetCollisionGroup(CollisionGroup(group_filter, group_id, 1));
 		mBodyInterface->AddBody(heavy->GetID(), EActivation::Activate);
-		Body *light2 = mBodyInterface->CreateBody(BodyCreationSettings(new BoxShape(Vec3::sReplicate(0.1f)), Vec3(-5.0f, 7.0f, 5.2f), Quat::sIdentity(), EMotionType::Dynamic, Layers::MOVING));
+		Body *light2 = mBodyInterface->CreateBody(BodyCreationSettings(new BoxShape(Vec3::sReplicate(0.1f)), RVec3(-5.0f, 7.0f, 5.2f), Quat::sIdentity(), EMotionType::Dynamic, Layers::MOVING));
 		light2->SetCollisionGroup(CollisionGroup(group_filter, group_id, 2));
 		mBodyInterface->AddBody(light2->GetID(), EActivation::Activate);
 		++group_id;
@@ -110,10 +111,10 @@ void SliderConstraintTest::Initialize()
 
 	{
 		// Two bodies vertically stacked with a slider constraint
-		Body *vert1 = mBodyInterface->CreateBody(BodyCreationSettings(new BoxShape(Vec3::sReplicate(1.0f)), Vec3(5, 9, 0), Quat::sIdentity(), EMotionType::Dynamic, Layers::MOVING));
+		Body *vert1 = mBodyInterface->CreateBody(BodyCreationSettings(new BoxShape(Vec3::sReplicate(1.0f)), RVec3(5, 9, 0), Quat::sIdentity(), EMotionType::Dynamic, Layers::MOVING));
 		vert1->SetCollisionGroup(CollisionGroup(group_filter, group_id, 0));
 		mBodyInterface->AddBody(vert1->GetID(), EActivation::Activate);
-		Body *vert2 = mBodyInterface->CreateBody(BodyCreationSettings(new BoxShape(Vec3::sReplicate(1.0f)), Vec3(5, 3, 0), Quat::sIdentity(), EMotionType::Dynamic, Layers::MOVING));
+		Body *vert2 = mBodyInterface->CreateBody(BodyCreationSettings(new BoxShape(Vec3::sReplicate(1.0f)), RVec3(5, 3, 0), Quat::sIdentity(), EMotionType::Dynamic, Layers::MOVING));
 		vert2->SetCollisionGroup(CollisionGroup(group_filter, group_id, 1));
 		mBodyInterface->AddBody(vert2->GetID(), EActivation::Activate);
 		++group_id;
@@ -128,10 +129,10 @@ void SliderConstraintTest::Initialize()
 
 	{
 		// Two bodies vertically stacked with a slider constraint using soft limits
-		Body *vert1 = mBodyInterface->CreateBody(BodyCreationSettings(new BoxShape(Vec3::sReplicate(1.0f)), Vec3(10, 9, 0), Quat::sIdentity(), EMotionType::Dynamic, Layers::MOVING));
+		Body *vert1 = mBodyInterface->CreateBody(BodyCreationSettings(new BoxShape(Vec3::sReplicate(1.0f)), RVec3(10, 9, 0), Quat::sIdentity(), EMotionType::Dynamic, Layers::MOVING));
 		vert1->SetCollisionGroup(CollisionGroup(group_filter, group_id, 0));
 		mBodyInterface->AddBody(vert1->GetID(), EActivation::Activate);
-		Body *vert2 = mBodyInterface->CreateBody(BodyCreationSettings(new BoxShape(Vec3::sReplicate(1.0f)), Vec3(10, 3, 0), Quat::sIdentity(), EMotionType::Dynamic, Layers::MOVING));
+		Body *vert2 = mBodyInterface->CreateBody(BodyCreationSettings(new BoxShape(Vec3::sReplicate(1.0f)), RVec3(10, 3, 0), Quat::sIdentity(), EMotionType::Dynamic, Layers::MOVING));
 		vert2->SetCollisionGroup(CollisionGroup(group_filter, group_id, 1));
 		mBodyInterface->AddBody(vert2->GetID(), EActivation::Activate);
 		++group_id;
@@ -141,8 +142,8 @@ void SliderConstraintTest::Initialize()
 		slider.SetSliderAxis(Vec3::sAxisY());
 		slider.mLimitsMin = 0.0f;
 		slider.mLimitsMax = 2.0f;
-		slider.mFrequency = 1.0f;
-		slider.mDamping = 0.5f;
+		slider.mLimitsSpringSettings.mFrequency = 1.0f;
+		slider.mLimitsSpringSettings.mDamping = 0.5f;
 		mPhysicsSystem->AddConstraint(slider.Create(*vert1, *vert2));
 	}
 }

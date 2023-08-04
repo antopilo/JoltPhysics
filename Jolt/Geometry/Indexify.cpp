@@ -1,3 +1,4 @@
+// Jolt Physics Library (https://github.com/jrouwe/JoltPhysics)
 // SPDX-FileCopyrightText: 2021 Jorrit Rouwe
 // SPDX-License-Identifier: MIT
 
@@ -55,7 +56,7 @@ void Indexify(const TriangleList &inTriangles, VertexList &outVertices, IndexedT
 		it.mMaterialIndex = t.mMaterialIndex;
 		for (int j = 0; j < 3; ++j)
 			it.mIdx[j] = vertex_map[t.mV[j]];
-		if (!it.IsDegenerate())
+		if (!it.IsDegenerate(outVertices))
 			outTriangles.push_back(it);
 	}
 }

@@ -1,3 +1,4 @@
+// Jolt Physics Library (https://github.com/jrouwe/JoltPhysics)
 // SPDX-FileCopyrightText: 2021 Jorrit Rouwe
 // SPDX-License-Identifier: MIT
 
@@ -53,17 +54,17 @@ TEST_SUITE("EPATests")
 			// Check angle between v1 and v2
 			float angle = AngleBetweenVectors(v1, v2);
 			CHECK(angle < 0.1f);
-			EPA_TESTS_TRACE("Angle = %.9g\n", angle);
+			EPA_TESTS_TRACE("Angle = %.9g\n", (double)angle);
 
 			// Check delta between contact on A
 			Vec3 dpa = pa2 - pa1;
 			CHECK(dpa.Length() < 8.0e-4f);
-			EPA_TESTS_TRACE("Delta A = %.9g\n", dpa.Length());
+			EPA_TESTS_TRACE("Delta A = %.9g\n", (double)dpa.Length());
 
 			// Check delta between contact on B
 			Vec3 dpb = pb2 - pb1;
 			CHECK(dpb.Length() < 8.0e-4f);
-			EPA_TESTS_TRACE("Delta B = %.9g\n", dpb.Length());
+			EPA_TESTS_TRACE("Delta B = %.9g\n", (double)dpb.Length());
 		}
 
 		return intersect1;
@@ -189,7 +190,8 @@ TEST_SUITE("EPATests")
 		Sphere sphere(Vec3(0, 0, 0), 1.0f);
 		EPAPenetrationDepth epa;
 		float lambda = 1.0f + FLT_EPSILON;
-		Vec3 pa, pb, normal;
+		const Vec3 invalid(-999, -999, -999);
+		Vec3 pa = invalid, pb = invalid, normal = invalid;
 		CHECK(epa.CastShape(Mat44::sTranslation(Vec3(-1, 0, 0)), Vec3(10, 0, 0), 1.0e-4f, 1.0e-4f, sphere, sphere, 0.0f, 0.0f, true, lambda, pa, pb, normal));
 		CHECK(lambda == 0.0f);
 		CHECK_APPROX_EQUAL(pa, Vec3::sZero(), 5.0e-3f);
@@ -202,7 +204,8 @@ TEST_SUITE("EPATests")
 		Sphere sphere(Vec3(0, 0, 0), 1.0f);
 		EPAPenetrationDepth epa;
 		float lambda = 1.0f + FLT_EPSILON;
-		Vec3 pa, pb, normal;
+		const Vec3 invalid(-999, -999, -999);
+		Vec3 pa = invalid, pb = invalid, normal = invalid;
 		CHECK(epa.CastShape(Mat44::sTranslation(Vec3(-10, 0, 0)), Vec3(20, 0, 0), 1.0e-4f, 1.0e-4f, sphere, sphere, 0.0f, 0.0f, true, lambda, pa, pb, normal));
 		CHECK_APPROX_EQUAL(lambda, 8.0f / 20.0f);
 		CHECK_APPROX_EQUAL(pa, Vec3(-1, 0, 0));

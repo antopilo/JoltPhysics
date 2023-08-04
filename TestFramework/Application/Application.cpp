@@ -1,3 +1,4 @@
+// Jolt Physics Library (https://github.com/jrouwe/JoltPhysics)
 // SPDX-FileCopyrightText: 2021 Jorrit Rouwe
 // SPDX-License-Identifier: MIT
 
@@ -98,6 +99,9 @@ Application::~Application()
 		delete mRenderer;
 	}
 
+	// Unregisters all types with the factory and cleans up the default material
+	UnregisterTypes();
+
 	delete Factory::sInstance;
 	Factory::sInstance = nullptr;
 }
@@ -185,7 +189,7 @@ void Application::Run()
 
 			// Draw coordinate axis
 			if (mDebugRendererCleared)
-				mDebugRenderer->DrawCoordinateSystem(Mat44::sIdentity());
+				mDebugRenderer->DrawCoordinateSystem(RMat44::sIdentity());
 
 			// For next frame: mark that we haven't cleared debug stuff
 			mDebugRendererCleared = false;
@@ -240,7 +244,7 @@ void Application::GetCameraLocalHeadingAndPitch(float &outHeading, float &outPit
 void Application::ConvertCameraLocalToWorld(float inCameraHeading, float inCameraPitch)
 {
 	// Convert local to world space using the camera pivot
-	Mat44 pivot = GetCameraPivot(inCameraHeading, inCameraPitch);
+	RMat44 pivot = GetCameraPivot(inCameraHeading, inCameraPitch);
 	mWorldCamera = mLocalCamera;
 	mWorldCamera.mPos = pivot * mLocalCamera.mPos;
 	mWorldCamera.mForward = pivot.Multiply3x3(mLocalCamera.mForward);

@@ -1,3 +1,4 @@
+// Jolt Physics Library (https://github.com/jrouwe/JoltPhysics)
 // SPDX-FileCopyrightText: 2021 Jorrit Rouwe
 // SPDX-License-Identifier: MIT
 
@@ -13,10 +14,10 @@ class StreamIn;
 class StreamOut;
 
 /// Resource that contains the joint hierarchy for a skeleton
-class Skeleton : public RefTarget<Skeleton>
+class JPH_EXPORT Skeleton : public RefTarget<Skeleton>
 {
 public:
-	JPH_DECLARE_SERIALIZABLE_NON_VIRTUAL(Skeleton)
+	JPH_DECLARE_SERIALIZABLE_NON_VIRTUAL(JPH_EXPORT, Skeleton)
 
 	using SkeletonResult = Result<Ref<Skeleton>>;
 
@@ -24,7 +25,7 @@ public:
 	class Joint
 	{
 	public:
-		JPH_DECLARE_SERIALIZABLE_NON_VIRTUAL(Joint)
+		JPH_DECLARE_SERIALIZABLE_NON_VIRTUAL(JPH_EXPORT, Joint)
 
 							Joint() = default;
 							Joint(const string_view &inName, const string_view &inParentName, int inParentJointIndex) : mName(inName), mParentName(inParentName), mParentJointIndex(inParentJointIndex) { }
@@ -52,6 +53,10 @@ public:
 
 	/// Fill in parent joint indices based on name
 	void					CalculateParentJointIndices();
+
+	/// Many of the algorithms that use the Skeleton class require that parent joints are in the mJoints array before their children.
+	/// This function returns true if this is the case, false if not.
+	bool					AreJointsCorrectlyOrdered() const;
 
 	/// Saves the state of this object in binary form to inStream.
 	void					SaveBinaryState(StreamOut &inStream) const;

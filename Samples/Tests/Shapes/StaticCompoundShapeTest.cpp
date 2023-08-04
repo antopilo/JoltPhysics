@@ -1,3 +1,4 @@
+// Jolt Physics Library (https://github.com/jrouwe/JoltPhysics)
 // SPDX-FileCopyrightText: 2021 Jorrit Rouwe
 // SPDX-License-Identifier: MIT
 
@@ -56,7 +57,7 @@ void StaticCompoundShapeTest::Initialize()
 				rotation = Quat::sRotation(Vec3::sAxisX(), 0.5f * JPH_PI);
 			else
 				rotation = Quat::sRotation(Vec3::sAxisZ(), 0.5f * JPH_PI);
-			Body &body = *mBodyInterface->CreateBody(BodyCreationSettings(shapes[j], Vec3(0, 10.0f + 4.0f * i, j * 20.0f), rotation, EMotionType::Dynamic, Layers::MOVING));
+			Body &body = *mBodyInterface->CreateBody(BodyCreationSettings(shapes[j], RVec3(0, 10.0f + 4.0f * i, j * 20.0f), rotation, EMotionType::Dynamic, Layers::MOVING));
 			mBodyInterface->AddBody(body.GetID(), EActivation::Activate);
 		}
 }

@@ -1,3 +1,4 @@
+// Jolt Physics Library (https://github.com/jrouwe/JoltPhysics)
 // SPDX-FileCopyrightText: 2021 Jorrit Rouwe
 // SPDX-License-Identifier: MIT
 
@@ -15,10 +16,10 @@ JPH_NAMESPACE_BEGIN
 class PhysicsSystem;
 
 /// WheelSettings object specifically for WheeledVehicleController
-class WheelSettingsWV : public WheelSettings
+class JPH_EXPORT WheelSettingsWV : public WheelSettings
 {
 public:
-	JPH_DECLARE_SERIALIZABLE_VIRTUAL(WheelSettingsWV)
+	JPH_DECLARE_SERIALIZABLE_VIRTUAL(JPH_EXPORT, WheelSettingsWV)
 
 	/// Constructor
 								WheelSettingsWV();
@@ -37,7 +38,7 @@ public:
 };
 
 /// Wheel object specifically for WheeledVehicleController
-class WheelWV : public Wheel
+class JPH_EXPORT WheelWV : public Wheel
 {
 public:
 	JPH_OVERRIDE_NEW_DELETE
@@ -57,6 +58,7 @@ public:
 	/// Update the wheel rotation based on the current angular velocity
 	void						Update(float inDeltaTime, const VehicleConstraint &inConstraint);
 
+	float						mLongitudinalSlip = 0.0f;					///< Velocity difference between ground and wheel relative to ground velocity
 	float						mCombinedLongitudinalFriction = 0.0f;		///< Combined friction coefficient in longitudinal direction (combines terrain and tires)
 	float						mCombinedLateralFriction = 0.0f;			///< Combined friction coefficient in lateral direction (combines terrain and tires)
 	float						mBrakeImpulse = 0.0f;						///< Amount of impulse that the brakes can apply to the floor (excluding friction)
@@ -66,10 +68,10 @@ public:
 /// 
 /// The properties in this controller are largely based on "Car Physics for Games" by Marco Monster.
 /// See: https://www.asawicki.info/Mirror/Car%20Physics%20for%20Games/Car%20Physics%20for%20Games.html
-class WheeledVehicleControllerSettings : public VehicleControllerSettings
+class JPH_EXPORT WheeledVehicleControllerSettings : public VehicleControllerSettings
 {
 public:
-	JPH_DECLARE_SERIALIZABLE_VIRTUAL(WheeledVehicleControllerSettings)
+	JPH_DECLARE_SERIALIZABLE_VIRTUAL(JPH_EXPORT, WheeledVehicleControllerSettings)
 
 	// See: VehicleControllerSettings
 	virtual VehicleController *	ConstructController(VehicleConstraint &inConstraint) const override;
@@ -79,10 +81,11 @@ public:
 	VehicleEngineSettings		mEngine;									///< The properties of the engine
 	VehicleTransmissionSettings	mTransmission;								///< The properties of the transmission (aka gear box)
 	Array<VehicleDifferentialSettings> mDifferentials;						///< List of differentials and their properties
+	float						mDifferentialLimitedSlipRatio = 1.4f;		///< Ratio max / min average wheel speed of each differential (measured at the clutch). When the ratio is exceeded all torque gets distributed to the differential with the minimal average velocity. This allows implementing a limited slip differential between differentials. Set to FLT_MAX for an open differential. Value should be > 1.
 };
 
 /// Runtime controller class
-class WheeledVehicleController : public VehicleController
+class JPH_EXPORT WheeledVehicleController : public VehicleController
 {
 public:
 	JPH_OVERRIDE_NEW_DELETE
@@ -118,6 +121,13 @@ public:
 	/// Get the differentials this vehicle has (writable interface, allows you to make changes to the configuration which will take effect the next time step)
 	Differentials &				GetDifferentials()							{ return mDifferentials; }
 
+	/// Ratio max / min average wheel speed of each differential (measured at the clutch).
+	float						GetDifferentialLimitedSlipRatio() const		{ return mDifferentialLimitedSlipRatio; }
+	void						SetDifferentialLimitedSlipRatio(float inV)	{ mDifferentialLimitedSlipRatio = inV; }
+
+	/// Get the average wheel speed of all driven wheels (measured at the clutch)
+	float						GetWheelSpeedAtClutch() const;
+
 #ifdef JPH_DEBUG_RENDERER
 	/// Debug drawing of RPM meter
 	void						SetRPMMeter(Vec3Arg inPosition, float inSize) { mRPMMeterPosition = inPosition; mRPMMeterSize = inSize; }
@@ -126,6 +136,7 @@ public:
 protected:
 	// See: VehicleController
 	virtual Wheel *				ConstructWheel(const WheelSettings &inWheel) const override { JPH_ASSERT(IsKindOf(&inWheel, JPH_RTTI(WheelSettingsWV))); return new WheelWV(static_cast<const WheelSettingsWV &>(inWheel)); }
+	virtual bool				AllowSleep() const override;
 	virtual void				PreCollide(float inDeltaTime, PhysicsSystem &inPhysicsSystem) override;
 	virtual void				PostCollide(float inDeltaTime, PhysicsSystem &inPhysicsSystem) override;
 	virtual bool				SolveLongitudinalAndLateralConstraints(float inDeltaTime) override;
@@ -145,6 +156,8 @@ protected:
 	VehicleEngine				mEngine;									///< Engine state of the vehicle
 	VehicleTransmission			mTransmission;								///< Transmission state of the vehicle
 	Differentials				mDifferentials;								///< Differential states of the vehicle
+	float						mDifferentialLimitedSlipRatio;				///< Ratio max / min average wheel speed of each differential (measured at the clutch).
+	float						mPreviousDeltaTime = 0.0f;					///< Delta time of the last step
 
 #ifdef JPH_DEBUG_RENDERER
 	// Debug settings

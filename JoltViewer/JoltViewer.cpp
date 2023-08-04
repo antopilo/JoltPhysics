@@ -1,3 +1,4 @@
+// Jolt Physics Library (https://github.com/jrouwe/JoltPhysics)
 // SPDX-FileCopyrightText: 2021 Jorrit Rouwe
 // SPDX-License-Identifier: MIT
 
@@ -9,7 +10,10 @@
 #include <Renderer/DebugRendererImp.h>
 #include <UI/UIManager.h>
 #include <Application/DebugUI.h>
+
+JPH_SUPPRESS_WARNINGS_STD_BEGIN
 #include <fstream>
+JPH_SUPPRESS_WARNINGS_STD_END
 
 #ifndef JPH_DEBUG_RENDERER	
 	// Hack to still compile DebugRenderer inside the test framework when Jolt is compiled without

@@ -1,3 +1,4 @@
+// Jolt Physics Library (https://github.com/jrouwe/JoltPhysics)
 // SPDX-FileCopyrightText: 2021 Jorrit Rouwe
 // SPDX-License-Identifier: MIT
 
@@ -14,7 +15,7 @@ void StateRecorderImpl::WriteBytes(const void *inData, size_t inNumBytes)
 
 void StateRecorderImpl::Rewind()
 {
-	mStream.seekg(0, stringstream::beg);
+	mStream.seekg(0, std::stringstream::beg);
 }
 
 void StateRecorderImpl::ReadBytes(void *outData, size_t inNumBytes)
@@ -49,14 +50,14 @@ void StateRecorderImpl::ReadBytes(void *outData, size_t inNumBytes)
 bool StateRecorderImpl::IsEqual(StateRecorderImpl &inReference)
 {	
 	// Get length of new state
-	mStream.seekg(0, stringstream::end);
+	mStream.seekg(0, std::stringstream::end);
 	std::streamoff this_len = mStream.tellg();
-	mStream.seekg(0, stringstream::beg);
+	mStream.seekg(0, std::stringstream::beg);
 
 	// Get length of old state
-	inReference.mStream.seekg(0, stringstream::end);
+	inReference.mStream.seekg(0, std::stringstream::end);
 	std::streamoff reference_len = inReference.mStream.tellg();
-	inReference.mStream.seekg(0, stringstream::beg);
+	inReference.mStream.seekg(0, std::stringstream::beg);
 
 	// Compare size
 	bool fail = reference_len != this_len;

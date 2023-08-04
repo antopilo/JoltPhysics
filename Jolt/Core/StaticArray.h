@@ -1,3 +1,4 @@
+// Jolt Physics Library (https://github.com/jrouwe/JoltPhysics)
 // SPDX-FileCopyrightText: 2021 Jorrit Rouwe
 // SPDX-License-Identifier: MIT
 
@@ -14,14 +15,16 @@ public:
 
 	using size_type = uint;
 
+	static constexpr uint Capacity = N;
+
 	/// Default constructor
 						StaticArray() = default;
 
 	/// Constructor from initializer list
-	explicit			StaticArray(initializer_list<T> inList)
+	explicit			StaticArray(std::initializer_list<T> inList)
 	{
 		JPH_ASSERT(inList.size() <= N);
-		for (typename initializer_list<T>::iterator i = inList.begin(); i != inList.end(); ++i)
+		for (typename std::initializer_list<T>::iterator i = inList.begin(); i != inList.end(); ++i)
 			::new (reinterpret_cast<T *>(&mElements[mSize++])) T(*i);
 	}
 
@@ -38,7 +41,7 @@ public:
 	/// Destruct all elements
 						~StaticArray()
 	{
-		if (!is_trivially_destructible<T>())
+		if constexpr (!is_trivially_destructible<T>())
 			for (T *e = reinterpret_cast<T *>(mElements), *end = e + mSize; e < end; ++e)
 				e->~T();
 	}
@@ -46,7 +49,7 @@ public:
 	/// Destruct all elements and set length to zero
 	void				clear()
 	{
-		if (!is_trivially_destructible<T>())
+		if constexpr (!is_trivially_destructible<T>())
 			for (T *e = reinterpret_cast<T *>(mElements), *end = e + mSize; e < end; ++e)
 				e->~T();
 		mSize = 0;
@@ -64,7 +67,7 @@ public:
 	void				emplace_back(A &&... inElement)
 	{	
 		JPH_ASSERT(mSize < N);
-		::new (&mElements[mSize++]) T(forward<A>(inElement)...);
+		::new (&mElements[mSize++]) T(std::forward<A>(inElement)...);
 	}
 
 	/// Remove element from the back of the array
@@ -96,10 +99,10 @@ public:
 	void				resize(size_type inNewSize)
 	{
 		JPH_ASSERT(inNewSize <= N);
-		if (!is_trivially_constructible<T>() && mSize < inNewSize)
+		if constexpr (!is_trivially_constructible<T>())
 			for (T *element = reinterpret_cast<T *>(mElements) + mSize, *element_end = reinterpret_cast<T *>(mElements) + inNewSize; element < element_end; ++element)
 				::new (element) T;
-		else if (!is_trivially_destructible<T>() && mSize > inNewSize)
+		if constexpr (!is_trivially_destructible<T>())
 			for (T *element = reinterpret_cast<T *>(mElements) + inNewSize, *element_end = reinterpret_cast<T *>(mElements) + mSize; element < element_end; ++element)
 				element->~T();
 		mSize = inNewSize;

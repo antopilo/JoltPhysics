@@ -1,4 +1,5 @@
-﻿// SPDX-FileCopyrightText: 2021 Jorrit Rouwe
+﻿// Jolt Physics Library (https://github.com/jrouwe/JoltPhysics)
+// SPDX-FileCopyrightText: 2021 Jorrit Rouwe
 // SPDX-License-Identifier: MIT
 
 #include <Renderer/Renderer.h>
@@ -66,7 +67,7 @@ protected:
 	virtual void				GetInitialCamera(CameraState &ioState) const	{ }
 
 	/// Override to specify a camera pivot point and orientation (world space)
-	virtual Mat44				GetCameraPivot(float inCameraHeading, float inCameraPitch) const { return Mat44::sIdentity(); }
+	virtual RMat44				GetCameraPivot(float inCameraHeading, float inCameraPitch) const { return RMat44::sIdentity(); }
 
 	/// Get scale factor for this world, used to boost camera speed and to scale detail of the shadows
 	virtual float				GetWorldScale() const							{ return 1.0f; }

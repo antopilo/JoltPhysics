@@ -1,3 +1,4 @@
+// Jolt Physics Library (https://github.com/jrouwe/JoltPhysics)
 // SPDX-FileCopyrightText: 2021 Jorrit Rouwe
 // SPDX-License-Identifier: MIT
 
@@ -14,7 +15,10 @@
 #include <UI/UITextButton.h>
 #include <Image/LoadTGA.h>
 #include <Utils/Log.h>
+
+JPH_SUPPRESS_WARNINGS_STD_BEGIN
 #include <fstream>
+JPH_SUPPRESS_WARNINGS_STD_END
 
 DebugUI::DebugUI(UIManager *inUIManager, const Font *inFont) :
 	mUI(inUIManager),

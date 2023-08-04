@@ -1,3 +1,4 @@
+// Jolt Physics Library (https://github.com/jrouwe/JoltPhysics)
 // SPDX-FileCopyrightText: 2021 Jorrit Rouwe
 // SPDX-License-Identifier: MIT
 
@@ -13,6 +14,7 @@ void TraceImpl(const char *inFMT, ...)
 	va_start(list, inFMT);
 	char buffer[1024];
 	vsnprintf(buffer, sizeof(buffer), inFMT, list);
+	va_end(list);
 	strcat_s(buffer, "\n");
 
 	// Log to the output window

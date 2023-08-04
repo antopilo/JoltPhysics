@@ -1,3 +1,4 @@
+// Jolt Physics Library (https://github.com/jrouwe/JoltPhysics)
 // SPDX-FileCopyrightText: 2021 Jorrit Rouwe
 // SPDX-License-Identifier: MIT
 
@@ -8,12 +9,12 @@
 JPH_NAMESPACE_BEGIN
 
 /// Implementation of the StateRecorder class that uses a stringstream as underlying store and that implements checking if the state doesn't change upon reading
-class StateRecorderImpl final : public StateRecorder
+class JPH_EXPORT StateRecorderImpl final : public StateRecorder
 {
 public:
 	/// Constructor
 						StateRecorderImpl() = default;
-						StateRecorderImpl(StateRecorderImpl &&inRHS)				: StateRecorder(inRHS), mStream(move(inRHS.mStream)) { }
+						StateRecorderImpl(StateRecorderImpl &&inRHS)				: StateRecorder(inRHS), mStream(std::move(inRHS.mStream)) { }
 
 	/// Write a string of bytes to the binary stream
 	virtual void		WriteBytes(const void *inData, size_t inNumBytes) override;
@@ -37,7 +38,7 @@ public:
 	string				GetData() const												{ return mStream.str(); }
 
 private:
-	stringstream		mStream;
+	std::stringstream	mStream;
 };
 
 JPH_NAMESPACE_END

@@ -1,3 +1,4 @@
+// Jolt Physics Library (https://github.com/jrouwe/JoltPhysics)
 // SPDX-FileCopyrightText: 2021 Jorrit Rouwe
 // SPDX-License-Identifier: MIT
 
@@ -70,8 +71,9 @@ void WheelTV::Update(float inDeltaTime, const VehicleConstraint &inConstraint)
 	{
 		// Friction at the point of this wheel between track and floor
 		const WheelSettingsTV *settings = GetSettings();
-		mCombinedLongitudinalFriction = sqrt(settings->mLongitudinalFriction * mContactBody->GetFriction());
-		mCombinedLateralFriction = sqrt(settings->mLateralFriction * mContactBody->GetFriction());
+		VehicleConstraint::CombineFunction combine_friction = inConstraint.GetCombineFriction();
+		mCombinedLongitudinalFriction = combine_friction(settings->mLongitudinalFriction, *mContactBody, mContactSubShapeID);
+		mCombinedLateralFriction = combine_friction(settings->mLateralFriction, *mContactBody, mContactSubShapeID);
 	}
 	else
 	{
@@ -151,6 +153,13 @@ TrackedVehicleController::TrackedVehicleController(const TrackedVehicleControlle
 	}
 }
 
+bool TrackedVehicleController::AllowSleep() const
+{
+	return mForwardInput == 0.0f								// No user input
+		&& mTransmission.AllowSleep()							// Transmission is not shifting
+		&& mEngine.AllowSleep();								// Engine is idling
+}
+
 void TrackedVehicleController::PreCollide(float inDeltaTime, PhysicsSystem &inPhysicsSystem)
 {
 	Wheels &wheels = mConstraint.GetWheels();
@@ -227,12 +236,17 @@ void TrackedVehicleController::PostCollide(float inDeltaTime, PhysicsSystem &inP
 		// Update RPM only if the tracks are connected to the engine
 		if (fastest_wheel_speed > -FLT_MAX && fastest_wheel_speed < FLT_MAX)
 			mEngine.SetCurrentRPM(fastest_wheel_speed * mTransmission.GetCurrentRatio() * VehicleEngine::cAngularVelocityToRPM);
-		mEngine.SetCurrentRPM(Clamp(mEngine.GetCurrentRPM(), mEngine.mMinRPM, mEngine.mMaxRPM));
 	}
 	else
 	{
-		// Engine not connected to tracks, update RPM based on engine inertia alone
-		mEngine.UpdateRPM(inDeltaTime, abs(mForwardInput));
+		// Update engine with damping
+		mEngine.ApplyDamping(inDeltaTime);
+
+		// In auto transmission mode, don't accelerate the engine when switching gears
+		float forward_input = mTransmission.mMode == ETransmissionMode::Manual? abs(mForwardInput) : 0.0f;
+
+		// Engine not connected to wheels, update RPM based on engine inertia alone
+		mEngine.ApplyTorque(mEngine.GetTorque(forward_input), inDeltaTime);
 	}
 
 	// Update transmission
@@ -405,10 +419,12 @@ bool TrackedVehicleController::SolveLongitudinalAndLateralConstraints(float inDe
 
 void TrackedVehicleController::Draw(DebugRenderer *inRenderer) const 
 {
+	float constraint_size = mConstraint.GetDrawConstraintSize();
+
 	// Draw RPM
 	Body *body = mConstraint.GetVehicleBody();
 	Vec3 rpm_meter_up = body->GetRotation() * mConstraint.GetLocalUp();
-	Vec3 rpm_meter_pos = body->GetPosition() + body->GetRotation() * mRPMMeterPosition;
+	RVec3 rpm_meter_pos = body->GetPosition() + body->GetRotation() * mRPMMeterPosition;
 	Vec3 rpm_meter_fwd = body->GetRotation() * mConstraint.GetLocalForward();
 	mEngine.DrawRPM(inRenderer, rpm_meter_pos, rpm_meter_fwd, rpm_meter_up, mRPMMeterSize, mTransmission.mShiftDownRPM, mTransmission.mShiftUpRPM);
 
@@ -417,7 +433,7 @@ void TrackedVehicleController::Draw(DebugRenderer *inRenderer) const
 								 "Gear: %d, Clutch: %.1f, EngineRPM: %.0f, V: %.1f km/h", 
 								 (double)mForwardInput, (double)mLeftRatio, (double)mRightRatio, (double)mBrakeInput, 
 								 mTransmission.GetCurrentGear(), (double)mTransmission.GetClutchFriction(), (double)mEngine.GetCurrentRPM(), (double)body->GetLinearVelocity().Length() * 3.6);
-	inRenderer->DrawText3D(body->GetPosition(), status, Color::sWhite, mConstraint.GetDrawConstraintSize());
+	inRenderer->DrawText3D(body->GetPosition(), status, Color::sWhite, constraint_size);
 
 	for (const VehicleTrack &t : mTracks)
 	{
@@ -425,10 +441,12 @@ void TrackedVehicleController::Draw(DebugRenderer *inRenderer) const
 		const WheelSettings *settings = w->GetSettings();
 
 		// Calculate where the suspension attaches to the body in world space
-		Vec3 ws_position = body->GetCenterOfMassPosition() + body->GetRotation() * (settings->mPosition - body->GetShape()->GetCenterOfMass());
+		RVec3 ws_position = body->GetCenterOfMassPosition() + body->GetRotation() * (settings->mPosition - body->GetShape()->GetCenterOfMass());
 
-		DebugRenderer::sInstance->DrawText3D(ws_position, StringFormat("W: %.1f", (double)t.mAngularVelocity), Color::sWhite, 0.1f);
+		DebugRenderer::sInstance->DrawText3D(ws_position, StringFormat("W: %.1f", (double)t.mAngularVelocity), Color::sWhite, constraint_size);
 	}
+
+	RMat44 body_transform = body->GetWorldTransform();
 
 	for (const Wheel *w_base : mConstraint.GetWheels())
 	{
@@ -436,23 +454,39 @@ void TrackedVehicleController::Draw(DebugRenderer *inRenderer) const
 		const WheelSettings *settings = w->GetSettings();
 
 		// Calculate where the suspension attaches to the body in world space
-		Vec3 ws_position = body->GetCenterOfMassPosition() + body->GetRotation() * (settings->mPosition - body->GetShape()->GetCenterOfMass());
+		RVec3 ws_position = body_transform * settings->mPosition;
+		Vec3 ws_direction = body_transform.Multiply3x3(settings->mSuspensionDirection);
+
+		// Draw suspension
+		RVec3 min_suspension_pos = ws_position + ws_direction * settings->mSuspensionMinLength;
+		RVec3 max_suspension_pos = ws_position + ws_direction * settings->mSuspensionMaxLength;
+		inRenderer->DrawLine(ws_position, min_suspension_pos, Color::sRed);
+		inRenderer->DrawLine(min_suspension_pos, max_suspension_pos, Color::sGreen);
+
+		// Draw current length
+		RVec3 wheel_pos = ws_position + ws_direction * w->GetSuspensionLength();
+		inRenderer->DrawMarker(wheel_pos, w->GetSuspensionLength() < settings->mSuspensionMinLength? Color::sRed : Color::sGreen, constraint_size);
+
+		// Draw wheel basis
+		Vec3 wheel_forward, wheel_up, wheel_right;
+		mConstraint.GetWheelLocalBasis(w, wheel_forward, wheel_up, wheel_right);
+		wheel_forward = body_transform.Multiply3x3(wheel_forward);
+		wheel_up = body_transform.Multiply3x3(wheel_up);
+		wheel_right = body_transform.Multiply3x3(wheel_right);
+		Vec3 steering_axis = body_transform.Multiply3x3(settings->mSteeringAxis);
+		inRenderer->DrawLine(wheel_pos, wheel_pos + wheel_forward, Color::sRed);
+		inRenderer->DrawLine(wheel_pos, wheel_pos + wheel_up, Color::sGreen);
+		inRenderer->DrawLine(wheel_pos, wheel_pos + wheel_right, Color::sBlue);
+		inRenderer->DrawLine(wheel_pos, wheel_pos + steering_axis, Color::sYellow);
 
 		if (w->HasContact())
 		{
 			// Draw contact
-			inRenderer->DrawLine(ws_position, w->GetContactPosition(), w->HasHitHardPoint()? Color::sRed : Color::sGreen); // Red if we hit the 'max up' limit
 			inRenderer->DrawLine(w->GetContactPosition(), w->GetContactPosition() + w->GetContactNormal(), Color::sYellow);
 			inRenderer->DrawLine(w->GetContactPosition(), w->GetContactPosition() + w->GetContactLongitudinal(), Color::sRed);
 			inRenderer->DrawLine(w->GetContactPosition(), w->GetContactPosition() + w->GetContactLateral(), Color::sBlue);
 
-			DebugRenderer::sInstance->DrawText3D(w->GetContactPosition(), StringFormat("S: %.2f", (double)w->GetSuspensionLength()), Color::sWhite, 0.1f);
-		}
-		else
-		{
-			// Draw 'no hit'
-			Vec3 max_droop = body->GetRotation() * settings->mDirection * (settings->mSuspensionMaxLength + settings->mRadius);
-			inRenderer->DrawLine(ws_position, ws_position + max_droop, Color::sYellow);
+			DebugRenderer::sInstance->DrawText3D(w->GetContactPosition(), StringFormat("S: %.2f", (double)w->GetSuspensionLength()), Color::sWhite, constraint_size);
 		}
 	}
 }

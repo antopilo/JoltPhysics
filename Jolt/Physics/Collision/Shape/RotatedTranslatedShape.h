@@ -1,3 +1,4 @@
+// Jolt Physics Library (https://github.com/jrouwe/JoltPhysics)
 // SPDX-FileCopyrightText: 2021 Jorrit Rouwe
 // SPDX-License-Identifier: MIT
 
@@ -11,10 +12,10 @@ JPH_NAMESPACE_BEGIN
 class CollideShapeSettings;
 
 /// Class that constructs a RotatedTranslatedShape
-class RotatedTranslatedShapeSettings final : public DecoratedShapeSettings
+class JPH_EXPORT RotatedTranslatedShapeSettings final : public DecoratedShapeSettings
 {
 public:
-	JPH_DECLARE_SERIALIZABLE_VIRTUAL(RotatedTranslatedShapeSettings)
+	JPH_DECLARE_SERIALIZABLE_VIRTUAL(JPH_EXPORT, RotatedTranslatedShapeSettings)
 
 	/// Constructor
 									RotatedTranslatedShapeSettings() = default;
@@ -34,7 +35,7 @@ public:
 
 /// A rotated translated shape will rotate and translate a child shape.
 /// Shifts the child object so that it is centered around the center of mass.
-class RotatedTranslatedShape final : public DecoratedShape
+class JPH_EXPORT RotatedTranslatedShape final : public DecoratedShape
 {
 public:
 	JPH_OVERRIDE_NEW_DELETE
@@ -42,6 +43,7 @@ public:
 	/// Constructor
 									RotatedTranslatedShape() : DecoratedShape(EShapeSubType::RotatedTranslated) { }
 									RotatedTranslatedShape(const RotatedTranslatedShapeSettings &inSettings, ShapeResult &outResult);
+									RotatedTranslatedShape(Vec3Arg inPosition, QuatArg inRotation, const Shape *inShape);
 
 	/// Access the rotation that is applied to the inner shape
 	Quat							GetRotation() const										{ return mRotation; }
@@ -54,9 +56,10 @@ public:
 
 	// See Shape::GetLocalBounds
 	virtual AABox					GetLocalBounds() const override;
-		
+
 	// See Shape::GetWorldSpaceBounds
 	virtual AABox					GetWorldSpaceBounds(Mat44Arg inCenterOfMassTransform, Vec3Arg inScale) const override;
+	using Shape::GetWorldSpaceBounds;
 
 	// See Shape::GetInnerRadius
 	virtual float					GetInnerRadius() const override							{ return mInnerShape->GetInnerRadius(); }
@@ -70,18 +73,21 @@ public:
 	// See Shape::GetSurfaceNormal
 	virtual Vec3					GetSurfaceNormal(const SubShapeID &inSubShapeID, Vec3Arg inLocalSurfacePosition) const override;
 
+	// See Shape::GetSupportingFace
+	virtual void					GetSupportingFace(const SubShapeID &inSubShapeID, Vec3Arg inDirection, Vec3Arg inScale, Mat44Arg inCenterOfMassTransform, SupportingFace &outVertices) const override;
+
 	// See Shape::GetSubmergedVolume
-	virtual void					GetSubmergedVolume(Mat44Arg inCenterOfMassTransform, Vec3Arg inScale, const Plane &inSurface, float &outTotalVolume, float &outSubmergedVolume, Vec3 &outCenterOfBuoyancy) const override;
+	virtual void					GetSubmergedVolume(Mat44Arg inCenterOfMassTransform, Vec3Arg inScale, const Plane &inSurface, float &outTotalVolume, float &outSubmergedVolume, Vec3 &outCenterOfBuoyancy JPH_IF_DEBUG_RENDERER(, RVec3Arg inBaseOffset)) const override;
 
 #ifdef JPH_DEBUG_RENDERER
 	// See Shape::Draw
-	virtual void					Draw(DebugRenderer *inRenderer, Mat44Arg inCenterOfMassTransform, Vec3Arg inScale, ColorArg inColor, bool inUseMaterialColors, bool inDrawWireframe) const override;
+	virtual void					Draw(DebugRenderer *inRenderer, RMat44Arg inCenterOfMassTransform, Vec3Arg inScale, ColorArg inColor, bool inUseMaterialColors, bool inDrawWireframe) const override;
 
 	// See Shape::DrawGetSupportFunction
-	virtual void					DrawGetSupportFunction(DebugRenderer *inRenderer, Mat44Arg inCenterOfMassTransform, Vec3Arg inScale, ColorArg inColor, bool inDrawSupportDirection) const override;
+	virtual void					DrawGetSupportFunction(DebugRenderer *inRenderer, RMat44Arg inCenterOfMassTransform, Vec3Arg inScale, ColorArg inColor, bool inDrawSupportDirection) const override;
 
 	// See Shape::DrawGetSupportingFace
-	virtual void					DrawGetSupportingFace(DebugRenderer *inRenderer, Mat44Arg inCenterOfMassTransform, Vec3Arg inScale) const override;
+	virtual void					DrawGetSupportingFace(DebugRenderer *inRenderer, RMat44Arg inCenterOfMassTransform, Vec3Arg inScale) const override;
 #endif // JPH_DEBUG_RENDERER
 
 	// See Shape::CastRay
@@ -90,6 +96,9 @@ public:
 
 	// See: Shape::CollidePoint
 	virtual void					CollidePoint(Vec3Arg inPoint, const SubShapeIDCreator &inSubShapeIDCreator, CollidePointCollector &ioCollector, const ShapeFilter &inShapeFilter = { }) const override;
+
+	// See: Shape::ColideSoftBodyVertices
+	virtual void					CollideSoftBodyVertices(Mat44Arg inCenterOfMassTransform, Array<SoftBodyVertex> &ioVertices, float inDeltaTime, Vec3Arg inDisplacementDueToGravity, int inCollidingShapeIndex) const override;
 
 	// See Shape::CollectTransformedShapes
 	virtual void					CollectTransformedShapes(const AABox &inBox, Vec3Arg inPositionCOM, QuatArg inRotation, Vec3Arg inScale, const SubShapeIDCreator &inSubShapeIDCreator, TransformedShapeCollector &ioCollector, const ShapeFilter &inShapeFilter) const override;
@@ -138,7 +147,7 @@ private:
 
 		return ScaleHelpers::RotateScale(mRotation, inScale);
 	}
-		
+
 	bool							mIsRotationIdentity;									///< If mRotation is close to identity (put here because it falls in padding bytes)
 	Vec3							mCenterOfMass;											///< Position of the center of mass
 	Quat							mRotation;												///< Rotation of the child shape

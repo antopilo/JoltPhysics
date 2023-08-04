@@ -1,3 +1,4 @@
+// Jolt Physics Library (https://github.com/jrouwe/JoltPhysics)
 // SPDX-FileCopyrightText: 2021 Jorrit Rouwe
 // SPDX-License-Identifier: MIT
 
@@ -77,7 +78,7 @@ TEST_SUITE("HeightFieldShapeTests")
 					if (x > 0 && y > 0 && x < inSettings.mSampleCount - 1 && y < inSettings.mSampleCount - 1)
 					{
 						// Check that the ray hit the height field
-						Vec3 hit_pos = ray.mOrigin + ray.mDirection * hit.mFraction;
+						Vec3 hit_pos = ray.GetPointOnRay(hit.mFraction);
 						CHECK_APPROX_EQUAL(hit_pos, shape_pos, 1.0e-3f);
 					}
 				}

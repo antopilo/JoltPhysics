@@ -1,3 +1,4 @@
+// Jolt Physics Library (https://github.com/jrouwe/JoltPhysics)
 // SPDX-FileCopyrightText: 2021 Jorrit Rouwe
 // SPDX-License-Identifier: MIT
 
@@ -229,7 +230,7 @@ void BroadPhaseBruteForce::CastAABoxNoLock(const AABoxCast &inBox, CastShapeBody
 	RayInvDirection inv_direction(inBox.mDirection);
 
 	// For all bodies
-	float early_out_fraction = ioCollector.GetEarlyOutFraction();
+	float early_out_fraction = ioCollector.GetPositiveEarlyOutFraction();
 	for (BodyID b : mBodyIDs)
 	{
 		const Body &body = mBodyManager->GetBody(b);
@@ -247,7 +248,7 @@ void BroadPhaseBruteForce::CastAABoxNoLock(const AABoxCast &inBox, CastShapeBody
 				ioCollector.AddHit(result);
 				if (ioCollector.ShouldEarlyOut())
 					break;
-				early_out_fraction = ioCollector.GetEarlyOutFraction();
+				early_out_fraction = ioCollector.GetPositiveEarlyOutFraction();
 			}
 		}
 	}
@@ -258,7 +259,7 @@ void BroadPhaseBruteForce::CastAABox(const AABoxCast &inBox, CastShapeBodyCollec
 	CastAABoxNoLock(inBox, ioCollector, inBroadPhaseLayerFilter, inObjectLayerFilter);
 }
 
-void BroadPhaseBruteForce::FindCollidingPairs(BodyID *ioActiveBodies, int inNumActiveBodies, float inSpeculativeContactDistance, ObjectVsBroadPhaseLayerFilter inObjectVsBroadPhaseLayerFilter, ObjectLayerPairFilter inObjectLayerPairFilter, BodyPairCollector &ioPairCollector) const
+void BroadPhaseBruteForce::FindCollidingPairs(BodyID *ioActiveBodies, int inNumActiveBodies, float inSpeculativeContactDistance, const ObjectVsBroadPhaseLayerFilter &inObjectVsBroadPhaseLayerFilter, const ObjectLayerPairFilter &inObjectLayerPairFilter, BodyPairCollector &ioPairCollector) const
 {
 	shared_lock lock(mMutex);
 
@@ -285,7 +286,7 @@ void BroadPhaseBruteForce::FindCollidingPairs(BodyID *ioActiveBodies, int inNumA
 
 			// Check if layers can collide
 			const ObjectLayer layer2 = body2.GetObjectLayer();
-			if (!inObjectLayerPairFilter(layer1, layer2))
+			if (!inObjectLayerPairFilter.ShouldCollide(layer1, layer2))
 				continue;
 
 			// Check if bounds overlap

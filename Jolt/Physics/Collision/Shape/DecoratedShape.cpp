@@ -1,3 +1,4 @@
+// Jolt Physics Library (https://github.com/jrouwe/JoltPhysics)
 // SPDX-FileCopyrightText: 2021 Jorrit Rouwe
 // SPDX-License-Identifier: MIT
 
@@ -46,6 +47,11 @@ DecoratedShape::DecoratedShape(EShapeSubType inSubType, const DecoratedShapeSett
 const PhysicsMaterial *DecoratedShape::GetMaterial(const SubShapeID &inSubShapeID) const
 {
 	return mInnerShape->GetMaterial(inSubShapeID);
+}
+
+void DecoratedShape::GetSupportingFace(const SubShapeID &inSubShapeID, Vec3Arg inDirection, Vec3Arg inScale, Mat44Arg inCenterOfMassTransform, SupportingFace &outVertices) const
+{
+	mInnerShape->GetSupportingFace(inSubShapeID, inDirection, inScale, inCenterOfMassTransform, outVertices);
 }
 
 uint64 DecoratedShape::GetSubShapeUserData(const SubShapeID &inSubShapeID) const

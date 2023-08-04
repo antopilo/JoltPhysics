@@ -1,3 +1,4 @@
+// Jolt Physics Library (https://github.com/jrouwe/JoltPhysics)
 // SPDX-FileCopyrightText: 2021 Jorrit Rouwe
 // SPDX-License-Identifier: MIT
 
@@ -28,7 +29,7 @@ void PoweredSliderConstraintTest::Initialize()
 	float box_size = 4.0f;
 	RefConst<Shape> box = new BoxShape(Vec3::sReplicate(0.5f * box_size));
 
-	Vec3 position(0, 10, 0);
+	RVec3 position(0, 10, 0);
 	Body &body1 = *mBodyInterface->CreateBody(BodyCreationSettings(box, position, Quat::sIdentity(), EMotionType::Static, Layers::NON_MOVING));
 	body1.SetCollisionGroup(CollisionGroup(group_filter, 0, 0));
 	mBodyInterface->AddBody(body1.GetID(), EActivation::DontActivate);
@@ -56,8 +57,8 @@ void PoweredSliderConstraintTest::PrePhysicsUpdate(const PreUpdateParams &inPara
 { 
 	MotorSettings &motor_settings = mConstraint->GetMotorSettings();
 	motor_settings.SetForceLimit(sMaxMotorAcceleration / mBody2->GetMotionProperties()->GetInverseMass()); // F = m * a
-	motor_settings.mFrequency = sFrequency;
-	motor_settings.mDamping = sDamping;
+	motor_settings.mSpringSettings.mFrequency = sFrequency;
+	motor_settings.mSpringSettings.mDamping = sDamping;
 	mConstraint->SetMaxFrictionForce(sMaxFrictionAcceleration / mBody2->GetMotionProperties()->GetInverseMass());
 }
 

@@ -1,3 +1,4 @@
+// Jolt Physics Library (https://github.com/jrouwe/JoltPhysics)
 // SPDX-FileCopyrightText: 2021 Jorrit Rouwe
 // SPDX-License-Identifier: MIT
 
@@ -18,7 +19,7 @@ using UIAnimationVector = Array<UIAnimation *>;
 class UIElement : public UIEventListener
 {
 public:
-	JPH_DECLARE_RTTI_VIRTUAL_BASE(UIElement)
+	JPH_DECLARE_RTTI_VIRTUAL_BASE(JPH_NO_EXPORT, UIElement)
 
 	/// Constructor
 						UIElement();

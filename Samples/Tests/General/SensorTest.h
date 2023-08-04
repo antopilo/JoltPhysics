@@ -1,3 +1,4 @@
+// Jolt Physics Library (https://github.com/jrouwe/JoltPhysics)
 // SPDX-FileCopyrightText: 2021 Jorrit Rouwe
 // SPDX-License-Identifier: MIT
 
@@ -10,7 +11,7 @@
 class SensorTest : public Test, public ContactListener
 {
 public:
-	JPH_DECLARE_RTTI_VIRTUAL(SensorTest)
+	JPH_DECLARE_RTTI_VIRTUAL(JPH_NO_EXPORT, SensorTest)
 
 	virtual				~SensorTest() override;
 
@@ -40,6 +41,7 @@ private:
 		StaticAttractor,									// A static sensor that attrects dynamic bodies that enter its area
 		StaticSensor,										// A static sensor that only detects active bodies
 		KinematicSensor,									// A kinematic sensor that also detects sleeping bodies
+		SensorDetectingStatic,								// A kinematic sensor that detects static bodies
 		NumSensors
 	};
 

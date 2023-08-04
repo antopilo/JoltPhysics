@@ -1,3 +1,4 @@
+// Jolt Physics Library (https://github.com/jrouwe/JoltPhysics)
 // SPDX-FileCopyrightText: 2021 Jorrit Rouwe
 // SPDX-License-Identifier: MIT
 
@@ -31,7 +32,7 @@ void SwingTwistConstraintTest::Initialize()
 
 	Body *prev = nullptr;
 	Quat rotation = Quat::sRotation(Vec3::sAxisZ(), 0.5f * JPH_PI);
-	Vec3 position(0, 25, 0);
+	RVec3 position(0, 25, 0);
 	for (int i = 0; i < cChainLength; ++i)
 	{
 		position += Vec3(2.0f * half_cylinder_height, 0, 0);

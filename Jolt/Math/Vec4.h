@@ -1,3 +1,4 @@
+// Jolt Physics Library (https://github.com/jrouwe/JoltPhysics)
 // SPDX-FileCopyrightText: 2021 Jorrit Rouwe
 // SPDX-License-Identifier: MIT
 
@@ -9,7 +10,7 @@
 
 JPH_NAMESPACE_BEGIN
 
-class [[nodiscard]] alignas(16) Vec4
+class [[nodiscard]] alignas(JPH_VECTOR_ALIGNMENT) Vec4
 {
 public:
 	JPH_OVERRIDE_NEW_DELETE
@@ -26,6 +27,7 @@ public:
 	/// Constructor
 								Vec4() = default; ///< Intentionally not initialized for performance reasons
 								Vec4(const Vec4 &inRHS) = default;
+	Vec4 &						operator = (const Vec4 &inRHS) = default;
 	explicit JPH_INLINE			Vec4(Vec3Arg inRHS);							///< WARNING: W component undefined!
 	JPH_INLINE					Vec4(Vec3Arg inRHS, float inW);
 	JPH_INLINE					Vec4(Type inRHS) : mValue(inRHS)				{ }

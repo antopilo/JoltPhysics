@@ -1,3 +1,4 @@
+// Jolt Physics Library (https://github.com/jrouwe/JoltPhysics)
 // SPDX-FileCopyrightText: 2021 Jorrit Rouwe
 // SPDX-License-Identifier: MIT
 
@@ -201,9 +202,10 @@ void Renderer::Initialize()
 	// Find adapter
 	ComPtr<IDXGIAdapter1> adapter;
 
+	HRESULT result = E_FAIL;
+
 	// First check if we have the Windows 1803 IDXGIFactory6 interface
 	ComPtr<IDXGIFactory6> factory6;
-
 	if (SUCCEEDED(mDXGIFactory->QueryInterface(IID_PPV_ARGS(&factory6))))
 	{
 		for (UINT index = 0; DXGI_ERROR_NOT_FOUND != factory6->EnumAdapterByGpuPreference(index, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(&adapter)); ++index)
@@ -216,7 +218,8 @@ void Renderer::Initialize()
 				continue;
 
 			// Check to see whether the adapter supports Direct3D 12
-			if (SUCCEEDED(D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&mDevice))))
+			result = D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&mDevice));
+			if (SUCCEEDED(result))
 				break;
 		}
 	}
@@ -233,10 +236,14 @@ void Renderer::Initialize()
 				continue;
 
 			// Check to see whether the adapter supports Direct3D 12
-			if (SUCCEEDED(D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&mDevice))))
+			result = D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&mDevice));
+			if (SUCCEEDED(result))
 				break;
 		}
 	}
+
+	// Check if we managed to obtain a device
+	FatalErrorIfFailed(result);
 	
 #ifdef _DEBUG
 	// Enable breaking on errors
@@ -500,8 +507,9 @@ void Renderer::BeginFrame(const CameraState &inCamera, float inWorldScale)
 
 	// Camera projection and view
 	vs->mProjection = sPerspective(camera_fovy, camera_aspect, camera_near, camera_far);
-	Vec3 tgt = inCamera.mPos + inCamera.mForward;
-	vs->mView = Mat44::sLookAt(inCamera.mPos, tgt, inCamera.mUp);
+	Vec3 cam_pos = Vec3(inCamera.mPos - mBaseOffset);
+	Vec3 tgt = cam_pos + inCamera.mForward;
+	vs->mView = Mat44::sLookAt(cam_pos, tgt, inCamera.mUp);
 
 	// Light projection and view
 	vs->mLightProjection = sPerspective(light_fov, 1.0f, light_near, light_far);
@@ -527,7 +535,7 @@ void Renderer::BeginFrame(const CameraState &inCamera, float inWorldScale)
 	
 	// Set constants for pixel shader
 	PixelShaderConstantBuffer *ps = mPixelShaderConstantBuffer[mFrameIndex]->Map<PixelShaderConstantBuffer>();
-	ps->mCameraPos = Vec4(inCamera.mPos, 0);
+	ps->mCameraPos = Vec4(cam_pos, 0);
 	ps->mLightPos = Vec4(light_pos, 0);
 	mPixelShaderConstantBuffer[mFrameIndex]->Unmap();
 
@@ -535,7 +543,7 @@ void Renderer::BeginFrame(const CameraState &inCamera, float inWorldScale)
 	mPixelShaderConstantBuffer[mFrameIndex]->Bind(1);
 
 	// Calculate camera frustum
-	mCameraFrustum = Frustum(inCamera.mPos, inCamera.mForward, inCamera.mUp, camera_fovx, camera_fovy, camera_near, camera_far);
+	mCameraFrustum = Frustum(cam_pos, inCamera.mForward, inCamera.mUp, camera_fovx, camera_fovy, camera_near, camera_far);
 
 	// Calculate light frustum
 	mLightFrustum = Frustum(light_pos, light_fwd, light_up, light_fov, light_fov, light_near, light_far);

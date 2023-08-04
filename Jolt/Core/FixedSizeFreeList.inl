@@ -1,3 +1,4 @@
+// Jolt Physics Library (https://github.com/jrouwe/JoltPhysics)
 // SPDX-FileCopyrightText: 2021 Jorrit Rouwe
 // SPDX-License-Identifier: MIT
 
@@ -6,14 +7,18 @@ JPH_NAMESPACE_BEGIN
 template <typename Object>
 FixedSizeFreeList<Object>::~FixedSizeFreeList()
 {
-	// Ensure everything is freed before the freelist is destructed
-	JPH_ASSERT(mNumFreeObjects.load(memory_order_relaxed) == mNumPages * mPageSize);
+	// Check if we got our Init call
+	if (mPages != nullptr)
+	{
+		// Ensure everything is freed before the freelist is destructed
+		JPH_ASSERT(mNumFreeObjects.load(memory_order_relaxed) == mNumPages * mPageSize);
 
-	// Free memory for pages
-	uint32 num_pages = mNumObjectsAllocated / mPageSize;
-	for (uint32 page = 0; page < num_pages; ++page)
-		AlignedFree(mPages[page]);
-	Free(mPages);
+		// Free memory for pages
+		uint32 num_pages = mNumObjectsAllocated / mPageSize;
+		for (uint32 page = 0; page < num_pages; ++page)
+			AlignedFree(mPages[page]);
+		Free(mPages);
+	}
 }
 
 template <typename Object>
@@ -74,7 +79,7 @@ uint32 FixedSizeFreeList<Object>::ConstructObject(Parameters &&... inParameters)
 			// Allocation successful
 			JPH_IF_ENABLE_ASSERTS(mNumFreeObjects.fetch_sub(1, memory_order_relaxed);)
 			ObjectStorage &storage = GetStorage(first_free);
-			::new (&storage.mObject) Object(forward<Parameters>(inParameters)...);
+			::new (&storage.mObject) Object(std::forward<Parameters>(inParameters)...);
 			storage.mNextFreeObject.store(first_free, memory_order_release);
 			return first_free;
 		}
@@ -92,7 +97,7 @@ uint32 FixedSizeFreeList<Object>::ConstructObject(Parameters &&... inParameters)
 				// Allocation successful
 				JPH_IF_ENABLE_ASSERTS(mNumFreeObjects.fetch_sub(1, memory_order_relaxed);)
 				ObjectStorage &storage = GetStorage(first_free);
-				::new (&storage.mObject) Object(forward<Parameters>(inParameters)...);
+				::new (&storage.mObject) Object(std::forward<Parameters>(inParameters)...);
 				storage.mNextFreeObject.store(first_free, memory_order_release);
 				return first_free;
 			}

@@ -1,3 +1,4 @@
+// Jolt Physics Library (https://github.com/jrouwe/JoltPhysics)
 // SPDX-FileCopyrightText: 2021 Jorrit Rouwe
 // SPDX-License-Identifier: MIT
 
@@ -35,7 +36,7 @@ UVec4 UVec4::Swizzle() const
 #if defined(JPH_USE_SSE)
 	return _mm_shuffle_epi32(mValue, _MM_SHUFFLE(SwizzleW, SwizzleZ, SwizzleY, SwizzleX));
 #elif defined(JPH_USE_NEON)
-	return __builtin_shufflevector(mValue, mValue, SwizzleX, SwizzleY, SwizzleZ, SwizzleW);
+	return JPH_NEON_SHUFFLE_F32x4(mValue, mValue, SwizzleX, SwizzleY, SwizzleZ, SwizzleW);
 #else
 	return UVec4(mU32[SwizzleX], mU32[SwizzleY], mU32[SwizzleZ], mU32[SwizzleW]);
 #endif
@@ -207,7 +208,9 @@ UVec4 UVec4::sAnd(UVec4Arg inV1, UVec4Arg inV2)
 
 UVec4 UVec4::sNot(UVec4Arg inV1)
 {
-#if defined(JPH_USE_SSE)
+#if defined(JPH_USE_AVX512)
+	return _mm_ternarylogic_epi32(inV1.mValue, inV1.mValue, inV1.mValue, 0b01010101);
+#elif defined(JPH_USE_SSE)
 	return sXor(inV1, sReplicate(0xffffffff));
 #elif defined(JPH_USE_NEON)
 	return vmvnq_u32(inV1.mValue);
@@ -377,7 +380,7 @@ int UVec4::GetTrues() const
 #if defined(JPH_USE_SSE)
 	return _mm_movemask_ps(_mm_castsi128_ps(mValue));
 #elif defined(JPH_USE_NEON)
-    int32x4_t shift = { 0, 1, 2, 3 };
+    int32x4_t shift = JPH_NEON_INT32x4(0, 1, 2, 3);
     return vaddvq_u32(vshlq_u32(vshrq_n_u32(mValue, 31), shift));
 #else
 	return (mU32[0] >> 31) | ((mU32[1] >> 31) << 1) | ((mU32[2] >> 31) << 2) | ((mU32[3] >> 31) << 3);
@@ -486,7 +489,7 @@ UVec4 UVec4::Expand4Byte0() const
 #if defined(JPH_USE_SSE4_1)
 	return _mm_shuffle_epi8(mValue, _mm_set_epi32(int(0xffffff03), int(0xffffff02), int(0xffffff01), int(0xffffff00)));
 #elif defined(JPH_USE_NEON)
-	int8x16_t idx = { 0x00, 0x7f, 0x7f, 0x7f, 0x01, 0x7f, 0x7f, 0x7f, 0x02, 0x7f, 0x7f, 0x7f, 0x03, 0x7f, 0x7f, 0x7f };
+	int8x16_t idx = JPH_NEON_INT8x16(0x00, 0x7f, 0x7f, 0x7f, 0x01, 0x7f, 0x7f, 0x7f, 0x02, 0x7f, 0x7f, 0x7f, 0x03, 0x7f, 0x7f, 0x7f);
 	return vreinterpretq_u32_s8(vqtbl1q_s8(vreinterpretq_s8_u32(mValue), idx));
 #else
 	UVec4 result;
@@ -501,7 +504,7 @@ UVec4 UVec4::Expand4Byte4() const
 #if defined(JPH_USE_SSE4_1)
 	return _mm_shuffle_epi8(mValue, _mm_set_epi32(int(0xffffff07), int(0xffffff06), int(0xffffff05), int(0xffffff04)));
 #elif defined(JPH_USE_NEON)
-	int8x16_t idx = { 0x04, 0x7f, 0x7f, 0x7f, 0x05, 0x7f, 0x7f, 0x7f, 0x06, 0x7f, 0x7f, 0x7f, 0x07, 0x7f, 0x7f, 0x7f };
+	int8x16_t idx = JPH_NEON_INT8x16(0x04, 0x7f, 0x7f, 0x7f, 0x05, 0x7f, 0x7f, 0x7f, 0x06, 0x7f, 0x7f, 0x7f, 0x07, 0x7f, 0x7f, 0x7f);
 	return vreinterpretq_u32_s8(vqtbl1q_s8(vreinterpretq_s8_u32(mValue), idx));
 #else
 	UVec4 result;
@@ -516,7 +519,7 @@ UVec4 UVec4::Expand4Byte8() const
 #if defined(JPH_USE_SSE4_1)
 	return _mm_shuffle_epi8(mValue, _mm_set_epi32(int(0xffffff0b), int(0xffffff0a), int(0xffffff09), int(0xffffff08)));
 #elif defined(JPH_USE_NEON)
-	int8x16_t idx = { 0x08, 0x7f, 0x7f, 0x7f, 0x09, 0x7f, 0x7f, 0x7f, 0x0a, 0x7f, 0x7f, 0x7f, 0x0b, 0x7f, 0x7f, 0x7f };
+	int8x16_t idx = JPH_NEON_INT8x16(0x08, 0x7f, 0x7f, 0x7f, 0x09, 0x7f, 0x7f, 0x7f, 0x0a, 0x7f, 0x7f, 0x7f, 0x0b, 0x7f, 0x7f, 0x7f);
 	return vreinterpretq_u32_s8(vqtbl1q_s8(vreinterpretq_s8_u32(mValue), idx));
 #else
 	UVec4 result;
@@ -531,7 +534,7 @@ UVec4 UVec4::Expand4Byte12() const
 #if defined(JPH_USE_SSE4_1)
 	return _mm_shuffle_epi8(mValue, _mm_set_epi32(int(0xffffff0f), int(0xffffff0e), int(0xffffff0d), int(0xffffff0c)));
 #elif defined(JPH_USE_NEON)
-	int8x16_t idx = { 0x0c, 0x7f, 0x7f, 0x7f, 0x0d, 0x7f, 0x7f, 0x7f, 0x0e, 0x7f, 0x7f, 0x7f, 0x0f, 0x7f, 0x7f, 0x7f };
+	int8x16_t idx = JPH_NEON_INT8x16(0x0c, 0x7f, 0x7f, 0x7f, 0x0d, 0x7f, 0x7f, 0x7f, 0x0e, 0x7f, 0x7f, 0x7f, 0x0f, 0x7f, 0x7f, 0x7f);
 	return vreinterpretq_u32_s8(vqtbl1q_s8(vreinterpretq_s8_u32(mValue), idx));
 #else
 	UVec4 result;
@@ -543,10 +546,21 @@ UVec4 UVec4::Expand4Byte12() const
 
 UVec4 UVec4::ShiftComponents4Minus(int inCount) const
 {
+#if defined(JPH_USE_SSE4_1) || defined(JPH_USE_NEON)
+	alignas(UVec4) static constexpr uint32 sFourMinusXShuffle[5][4] = 
+	{
+		{ 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff },
+		{ 0x0f0e0d0c, 0xffffffff, 0xffffffff, 0xffffffff },
+		{ 0x0b0a0908, 0x0f0e0d0c, 0xffffffff, 0xffffffff },
+		{ 0x07060504, 0x0b0a0908, 0x0f0e0d0c, 0xffffffff },
+		{ 0x03020100, 0x07060504, 0x0b0a0908, 0x0f0e0d0c }
+	};
+#endif
+
 #if defined(JPH_USE_SSE4_1)
-	return _mm_shuffle_epi8(mValue, sFourMinusXShuffle[inCount].mValue);
+	return _mm_shuffle_epi8(mValue, *reinterpret_cast<const UVec4::Type *>(sFourMinusXShuffle[inCount]));
 #elif defined(JPH_USE_NEON)
-	uint8x16_t idx = vreinterpretq_u8_u32(sFourMinusXShuffle[inCount].mValue);
+	uint8x16_t idx = vreinterpretq_u8_u32(*reinterpret_cast<const UVec4::Type *>(sFourMinusXShuffle[inCount]));
 	return vreinterpretq_u32_s8(vqtbl1q_s8(vreinterpretq_s8_u32(mValue), idx));
 #else
 	UVec4 result = UVec4::sZero();

@@ -1,3 +1,4 @@
+// Jolt Physics Library (https://github.com/jrouwe/JoltPhysics)
 // SPDX-FileCopyrightText: 2021 Jorrit Rouwe
 // SPDX-License-Identifier: MIT
 
@@ -13,10 +14,10 @@ class CollideShapeSettings;
 class OrientedBox;
 
 /// Base class settings to construct a compound shape
-class CompoundShapeSettings : public ShapeSettings
+class JPH_EXPORT CompoundShapeSettings : public ShapeSettings
 {
 public:
-	JPH_DECLARE_SERIALIZABLE_ABSTRACT(CompoundShapeSettings)
+	JPH_DECLARE_SERIALIZABLE_ABSTRACT(JPH_EXPORT, CompoundShapeSettings)
 
 	/// Constructor. Use AddShape to add the parts.
 									CompoundShapeSettings() = default;
@@ -29,7 +30,7 @@ public:
 
 	struct SubShapeSettings
 	{
-		JPH_DECLARE_SERIALIZABLE_NON_VIRTUAL(SubShapeSettings)
+		JPH_DECLARE_SERIALIZABLE_NON_VIRTUAL(JPH_EXPORT, SubShapeSettings)
 
 		RefConst<ShapeSettings>		mShape;													///< Sub shape (either this or mShapePtr needs to be filled up)
 		RefConst<Shape>				mShapePtr;												///< Sub shape (either this or mShape needs to be filled up)
@@ -44,7 +45,7 @@ public:
 };
 
 /// Base class for a compound shape
-class CompoundShape : public Shape
+class JPH_EXPORT CompoundShape : public Shape
 {
 public:
 	JPH_OVERRIDE_NEW_DELETE
@@ -61,12 +62,13 @@ public:
 
 	// See Shape::GetLocalBounds
 	virtual AABox					GetLocalBounds() const override							{ return mLocalBounds; }
-		
+
 	// See Shape::GetSubShapeIDBitsRecursive
 	virtual uint					GetSubShapeIDBitsRecursive() const override;
 
 	// See Shape::GetWorldSpaceBounds
 	virtual AABox					GetWorldSpaceBounds(Mat44Arg inCenterOfMassTransform, Vec3Arg inScale) const override;
+	using Shape::GetWorldSpaceBounds;
 
 	// See Shape::GetInnerRadius
 	virtual float					GetInnerRadius() const override							{ return mInnerRadius; }
@@ -86,19 +88,25 @@ public:
 	// See Shape::GetSurfaceNormal
 	virtual Vec3					GetSurfaceNormal(const SubShapeID &inSubShapeID, Vec3Arg inLocalSurfacePosition) const override;
 
+	// See Shape::GetSupportingFace
+	virtual void					GetSupportingFace(const SubShapeID &inSubShapeID, Vec3Arg inDirection, Vec3Arg inScale, Mat44Arg inCenterOfMassTransform, SupportingFace &outVertices) const override;
+
 	// See Shape::GetSubmergedVolume
-	virtual void					GetSubmergedVolume(Mat44Arg inCenterOfMassTransform, Vec3Arg inScale, const Plane &inSurface, float &outTotalVolume, float &outSubmergedVolume, Vec3 &outCenterOfBuoyancy) const override;
+	virtual void					GetSubmergedVolume(Mat44Arg inCenterOfMassTransform, Vec3Arg inScale, const Plane &inSurface, float &outTotalVolume, float &outSubmergedVolume, Vec3 &outCenterOfBuoyancy JPH_IF_DEBUG_RENDERER(, RVec3Arg inBaseOffset)) const override;
 
 #ifdef JPH_DEBUG_RENDERER
 	// See Shape::Draw
-	virtual void					Draw(DebugRenderer *inRenderer, Mat44Arg inCenterOfMassTransform, Vec3Arg inScale, ColorArg inColor, bool inUseMaterialColors, bool inDrawWireframe) const override;
+	virtual void					Draw(DebugRenderer *inRenderer, RMat44Arg inCenterOfMassTransform, Vec3Arg inScale, ColorArg inColor, bool inUseMaterialColors, bool inDrawWireframe) const override;
 
 	// See Shape::DrawGetSupportFunction
-	virtual void					DrawGetSupportFunction(DebugRenderer *inRenderer, Mat44Arg inCenterOfMassTransform, Vec3Arg inScale, ColorArg inColor, bool inDrawSupportDirection) const override;
+	virtual void					DrawGetSupportFunction(DebugRenderer *inRenderer, RMat44Arg inCenterOfMassTransform, Vec3Arg inScale, ColorArg inColor, bool inDrawSupportDirection) const override;
 
 	// See Shape::DrawGetSupportingFace
-	virtual void					DrawGetSupportingFace(DebugRenderer *inRenderer, Mat44Arg inCenterOfMassTransform, Vec3Arg inScale) const override;
+	virtual void					DrawGetSupportingFace(DebugRenderer *inRenderer, RMat44Arg inCenterOfMassTransform, Vec3Arg inScale) const override;
 #endif // JPH_DEBUG_RENDERER
+
+	// See: Shape::ColideSoftBodyVertices
+	virtual void					CollideSoftBodyVertices(Mat44Arg inCenterOfMassTransform, Array<SoftBodyVertex> &ioVertices, float inDeltaTime, Vec3Arg inDisplacementDueToGravity, int inCollidingShapeIndex) const override;
 
 	// See Shape::TransformShape
 	virtual void					TransformShape(Mat44Arg inCenterOfMassTransform, TransformedShapeCollector &ioCollector) const override;
@@ -219,7 +227,7 @@ public:
 		{
 			return mIsRotationIdentity? Quat::sIdentity() : Quat::sLoadFloat3Unsafe(mRotation);
 		}
-		
+
 		RefConst<Shape>				mShape;
 		Float3						mPositionCOM;											///< Note: Position of center of mass of sub shape!
 		Float3						mRotation;												///< Note: X, Y, Z of rotation quaternion - note we read 4 bytes beyond this so make sure there's something there
@@ -250,19 +258,19 @@ public:
 	/// Check if a sub shape ID is still valid for this shape
 	/// @param inSubShapeID Sub shape id that indicates the leaf shape relative to this shape
 	/// @return True if the ID is valid, false if not
-	inline bool						IsSubShapeIDValid(SubShapeID inSubShapeID) const 
+	inline bool						IsSubShapeIDValid(SubShapeID inSubShapeID) const
 	{
 		SubShapeID remainder;
-		return inSubShapeID.PopID(GetSubShapeIDBits(), remainder) < mSubShapes.size(); 
+		return inSubShapeID.PopID(GetSubShapeIDBits(), remainder) < mSubShapes.size();
 	}
 
 	/// Convert SubShapeID to sub shape index
 	/// @param inSubShapeID Sub shape id that indicates the leaf shape relative to this shape
 	/// @param outRemainder This is the sub shape ID for the sub shape of the compound after popping off the index
 	/// @return The index of the sub shape of this compound
-	inline uint32					GetSubShapeIndexFromID(SubShapeID inSubShapeID, SubShapeID &outRemainder) const 
-	{ 
-		uint32 idx = inSubShapeID.PopID(GetSubShapeIDBits(), outRemainder); 
+	inline uint32					GetSubShapeIndexFromID(SubShapeID inSubShapeID, SubShapeID &outRemainder) const
+	{
+		uint32 idx = inSubShapeID.PopID(GetSubShapeIDBits(), outRemainder);
 		JPH_ASSERT(idx < mSubShapes.size(), "Invalid SubShapeID");
 		return idx;
 	}

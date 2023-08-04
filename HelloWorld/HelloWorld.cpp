@@ -1,3 +1,4 @@
+// Jolt Physics Library (https://github.com/jrouwe/JoltPhysics)
 // SPDX-FileCopyrightText: 2021 Jorrit Rouwe
 // SPDX-License-Identifier: MIT
 
@@ -28,17 +29,21 @@ JPH_SUPPRESS_WARNINGS
 // All Jolt symbols are in the JPH namespace
 using namespace JPH;
 
+// If you want your code to compile using single or double precision write 0.0_r to get a Real value that compiles to double or float depending if JPH_DOUBLE_PRECISION is set or not.
+using namespace JPH::literals;
+
 // We're also using STL classes in this example
 using namespace std;
 
 // Callback for traces, connect this to your own trace function if you have one
 static void TraceImpl(const char *inFMT, ...)
-{ 
+{
 	// Format the message
 	va_list list;
 	va_start(list, inFMT);
 	char buffer[1024];
 	vsnprintf(buffer, sizeof(buffer), inFMT, list);
+	va_end(list);
 
 	// Print to the TTY
 	cout << buffer << endl;
@@ -48,7 +53,7 @@ static void TraceImpl(const char *inFMT, ...)
 
 // Callback for asserts, connect this to your own assert handler if you have one
 static bool AssertFailedImpl(const char *inExpression, const char *inMessage, const char *inFile, uint inLine)
-{ 
+{
 	// Print to the TTY
 	cout << inFile << ":" << inLine << ": (" << inExpression << ") " << (inMessage != nullptr? inMessage : "") << endl;
 
@@ -64,23 +69,27 @@ static bool AssertFailedImpl(const char *inExpression, const char *inMessage, co
 // but only if you do collision testing).
 namespace Layers
 {
-	static constexpr uint8 NON_MOVING = 0;
-	static constexpr uint8 MOVING = 1;
-	static constexpr uint8 NUM_LAYERS = 2;
+	static constexpr ObjectLayer NON_MOVING = 0;
+	static constexpr ObjectLayer MOVING = 1;
+	static constexpr ObjectLayer NUM_LAYERS = 2;
 };
 
-// Function that determines if two object layers can collide
-static bool MyObjectCanCollide(ObjectLayer inObject1, ObjectLayer inObject2)
+/// Class that determines if two object layers can collide
+class ObjectLayerPairFilterImpl : public ObjectLayerPairFilter
 {
-	switch (inObject1)
+public:
+	virtual bool					ShouldCollide(ObjectLayer inObject1, ObjectLayer inObject2) const override
 	{
-	case Layers::NON_MOVING:
-		return inObject2 == Layers::MOVING; // Non moving only collides with moving
-	case Layers::MOVING:
-		return true; // Moving collides with everything
-	default:
-		JPH_ASSERT(false);
-		return false;
+		switch (inObject1)
+		{
+		case Layers::NON_MOVING:
+			return inObject2 == Layers::MOVING; // Non moving only collides with moving
+		case Layers::MOVING:
+			return true; // Moving collides with everything
+		default:
+			JPH_ASSERT(false);
+			return false;
+		}
 	}
 };
 
@@ -135,27 +144,31 @@ private:
 	BroadPhaseLayer					mObjectToBroadPhase[Layers::NUM_LAYERS];
 };
 
-// Function that determines if two broadphase layers can collide
-static bool MyBroadPhaseCanCollide(ObjectLayer inLayer1, BroadPhaseLayer inLayer2)
+/// Class that determines if an object layer can collide with a broadphase layer
+class ObjectVsBroadPhaseLayerFilterImpl : public ObjectVsBroadPhaseLayerFilter
 {
-	switch (inLayer1)
+public:
+	virtual bool				ShouldCollide(ObjectLayer inLayer1, BroadPhaseLayer inLayer2) const override
 	{
-	case Layers::NON_MOVING:
-		return inLayer2 == BroadPhaseLayers::MOVING;
-	case Layers::MOVING:
-		return true;	
-	default:
-		JPH_ASSERT(false);
-		return false;
+		switch (inLayer1)
+		{
+		case Layers::NON_MOVING:
+			return inLayer2 == BroadPhaseLayers::MOVING;
+		case Layers::MOVING:
+			return true;
+		default:
+			JPH_ASSERT(false);
+			return false;
+		}
 	}
-}
+};
 
 // An example contact listener
 class MyContactListener : public ContactListener
 {
 public:
 	// See: ContactListener
-	virtual ValidateResult	OnContactValidate(const Body &inBody1, const Body &inBody2, const CollideShapeResult &inCollisionResult) override
+	virtual ValidateResult	OnContactValidate(const Body &inBody1, const Body &inBody2, RVec3Arg inBaseOffset, const CollideShapeResult &inCollisionResult) override
 	{
 		cout << "Contact validate callback" << endl;
 
@@ -174,7 +187,7 @@ public:
 	}
 
 	virtual void			OnContactRemoved(const SubShapeIDPair &inSubShapePair) override
-	{ 
+	{
 		cout << "A contact was removed" << endl;
 	}
 };
@@ -211,7 +224,7 @@ int main(int argc, char** argv)
 	RegisterTypes();
 
 	// We need a temp allocator for temporary allocations during the physics update. We're
-	// pre-allocating 10 MB to avoid having to do allocations during the physics update. 
+	// pre-allocating 10 MB to avoid having to do allocations during the physics update.
 	// B.t.w. 10 MB is way too much for this example but it is a typical value you can use.
 	// If you don't want to pre-allocate you can also use TempAllocatorMalloc to fall back to
 	// malloc / free.
@@ -244,9 +257,17 @@ int main(int argc, char** argv)
 	// Note: As this is an interface, PhysicsSystem will take a reference to this so this instance needs to stay alive!
 	BPLayerInterfaceImpl broad_phase_layer_interface;
 
+	// Create class that filters object vs broadphase layers
+	// Note: As this is an interface, PhysicsSystem will take a reference to this so this instance needs to stay alive!
+	ObjectVsBroadPhaseLayerFilterImpl object_vs_broadphase_layer_filter;
+
+	// Create class that filters object vs object layers
+	// Note: As this is an interface, PhysicsSystem will take a reference to this so this instance needs to stay alive!
+	ObjectLayerPairFilterImpl object_vs_object_layer_filter;
+
 	// Now we can create the actual physics system.
 	PhysicsSystem physics_system;
-	physics_system.Init(cMaxBodies, cNumBodyMutexes, cMaxBodyPairs, cMaxContactConstraints, broad_phase_layer_interface, MyBroadPhaseCanCollide, MyObjectCanCollide);
+	physics_system.Init(cMaxBodies, cNumBodyMutexes, cMaxBodyPairs, cMaxContactConstraints, broad_phase_layer_interface, object_vs_broadphase_layer_filter, object_vs_object_layer_filter);
 
 	// A body activation listener gets notified when bodies activate and go to sleep
 	// Note that this is called from a job so whatever you do here needs to be thread safe.
@@ -265,7 +286,7 @@ int main(int argc, char** argv)
 	BodyInterface &body_interface = physics_system.GetBodyInterface();
 
 	// Next we can create a rigid body to serve as the floor, we make a large box
-	// Create the settings for the collision volume (the shape). 
+	// Create the settings for the collision volume (the shape).
 	// Note that for simple shapes (like boxes) you can also directly construct a BoxShape.
 	BoxShapeSettings floor_shape_settings(Vec3(100.0f, 1.0f, 100.0f));
 
@@ -274,7 +295,7 @@ int main(int argc, char** argv)
 	ShapeRefC floor_shape = floor_shape_result.Get(); // We don't expect an error here, but you can check floor_shape_result for HasError() / GetError()
 
 	// Create the settings for the body itself. Note that here you can also set other properties like the restitution / friction.
-	BodyCreationSettings floor_settings(floor_shape, Vec3(0.0f, -1.0f, 0.0f), Quat::sIdentity(), EMotionType::Static, Layers::NON_MOVING);
+	BodyCreationSettings floor_settings(floor_shape, RVec3(0.0_r, -1.0_r, 0.0_r), Quat::sIdentity(), EMotionType::Static, Layers::NON_MOVING);
 
 	// Create the actual rigid body
 	Body *floor = body_interface.CreateBody(floor_settings); // Note that if we run out of bodies this can return nullptr
@@ -284,7 +305,7 @@ int main(int argc, char** argv)
 
 	// Now create a dynamic body to bounce on the floor
 	// Note that this uses the shorthand version of creating and adding a body to the world
-	BodyCreationSettings sphere_settings(new SphereShape(0.5f), Vec3(0.0f, 2.0f, 0.0f), Quat::sIdentity(), EMotionType::Dynamic, Layers::MOVING);
+	BodyCreationSettings sphere_settings(new SphereShape(0.5f), RVec3(0.0_r, 2.0_r, 0.0_r), Quat::sIdentity(), EMotionType::Dynamic, Layers::MOVING);
 	BodyID sphere_id = body_interface.CreateAndAddBody(sphere_settings, EActivation::Activate);
 
 	// Now you can interact with the dynamic body, in this case we're going to give it a velocity.
@@ -307,18 +328,15 @@ int main(int argc, char** argv)
 		++step;
 
 		// Output current position and velocity of the sphere
-		Vec3 position = body_interface.GetCenterOfMassPosition(sphere_id);
+		RVec3 position = body_interface.GetCenterOfMassPosition(sphere_id);
 		Vec3 velocity = body_interface.GetLinearVelocity(sphere_id);
 		cout << "Step " << step << ": Position = (" << position.GetX() << ", " << position.GetY() << ", " << position.GetZ() << "), Velocity = (" << velocity.GetX() << ", " << velocity.GetY() << ", " << velocity.GetZ() << ")" << endl;
 
 		// If you take larger steps than 1 / 60th of a second you need to do multiple collision steps in order to keep the simulation stable. Do 1 collision step per 1 / 60th of a second (round up).
 		const int cCollisionSteps = 1;
 
-		// If you want more accurate step results you can do multiple sub steps within a collision step. Usually you would set this to 1.
-		const int cIntegrationSubSteps = 1;
-
 		// Step the world
-		physics_system.Update(cDeltaTime, cCollisionSteps, cIntegrationSubSteps, &temp_allocator, &job_system);
+		physics_system.Update(cDeltaTime, cCollisionSteps, &temp_allocator, &job_system);
 	}
 
 	// Remove the sphere from the physics system. Note that the sphere itself keeps all of its state and can be re-added at any time.
@@ -330,6 +348,9 @@ int main(int argc, char** argv)
 	// Remove and destroy the floor
 	body_interface.RemoveBody(floor->GetID());
 	body_interface.DestroyBody(floor->GetID());
+
+	// Unregisters all types with the factory and cleans up the default material
+	UnregisterTypes();
 
 	// Destroy the factory
 	delete Factory::sInstance;

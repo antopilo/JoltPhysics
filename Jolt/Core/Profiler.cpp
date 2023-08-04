@@ -1,3 +1,4 @@
+// Jolt Physics Library (https://github.com/jrouwe/JoltPhysics)
 // SPDX-FileCopyrightText: 2021 Jorrit Rouwe
 // SPDX-License-Identifier: MIT
 
@@ -21,13 +22,28 @@ JPH_NAMESPACE_BEGIN
 //////////////////////////////////////////////////////////////////////////////////////////
 
 Profiler *Profiler::sInstance = nullptr;
-thread_local ProfileThread *ProfileThread::sInstance = nullptr;
+
+#ifdef JPH_SHARED_LIBRARY
+	static thread_local ProfileThread *sInstance = nullptr;
+
+	ProfileThread *ProfileThread::sGetInstance()
+	{
+		return sInstance;
+	}
+
+	void ProfileThread::sSetInstance(ProfileThread *inInstance)
+	{
+		sInstance = inInstance;
+	}
+#else
+	thread_local ProfileThread *ProfileThread::sInstance = nullptr;
+#endif
 
 bool ProfileMeasurement::sOutOfSamplesReported = false;
 
 void Profiler::NextFrame()
 {
-	lock_guard lock(mLock);
+	std::lock_guard lock(mLock);
 
 	if (mDump)
 	{
@@ -47,14 +63,14 @@ void Profiler::Dump(const string_view &inTag)
 
 void Profiler::AddThread(ProfileThread *inThread)										
 { 
-	lock_guard lock(mLock); 
+	std::lock_guard lock(mLock); 
 
 	mThreads.push_back(inThread); 
 }
 
 void Profiler::RemoveThread(ProfileThread *inThread)									
 { 
-	lock_guard lock(mLock); 
+	std::lock_guard lock(mLock); 
 	
 	Array<ProfileThread *>::iterator i = find(mThreads.begin(), mThreads.end(), inThread); 
 	JPH_ASSERT(i != mThreads.end()); 
@@ -179,8 +195,8 @@ static String sHTMLEncode(const char *inString)
 void Profiler::DumpList(const char *inTag, const Aggregators &inAggregators)
 {
 	// Open file
-	ofstream f;
-	f.open(StringFormat("profile_list_%s.html", inTag).c_str(), ofstream::out | ofstream::trunc);
+	std::ofstream f;
+	f.open(StringFormat("profile_list_%s.html", inTag).c_str(), std::ofstream::out | std::ofstream::trunc);
 	if (!f.is_open()) 
 		return;
 
@@ -190,7 +206,7 @@ void Profiler::DumpList(const char *inTag, const Aggregators &inAggregators)
 	<head>
 		<title>Profile List</title>
 		<link rel="stylesheet" href="WebIncludes/semantic.min.css">
-		<script type="text/javascript" src="WebIncludes/jquery-3.2.1.min.js"></script>
+		<script type="text/javascript" src="WebIncludes/jquery-3.6.4.min.js"></script>
 		<script type="text/javascript" src="WebIncludes/semantic.min.js"></script>
 		<script type="text/javascript" src="WebIncludes/tablesort.js"></script>
 		<script type="text/javascript">$(document).ready(function() { $('table').tablesort({ compare: function(a, b) { return isNaN(a) || isNaN(b)? a.localeCompare(b) : Number(a) - Number(b); } }); });</script>
@@ -259,8 +275,8 @@ void Profiler::DumpList(const char *inTag, const Aggregators &inAggregators)
 void Profiler::DumpChart(const char *inTag, const Threads &inThreads, const KeyToAggregator &inKeyToAggregators, const Aggregators &inAggregators)
 {
 	// Open file
-	ofstream f;
-	f.open(StringFormat("profile_chart_%s.html", inTag).c_str(), ofstream::out | ofstream::trunc);
+	std::ofstream f;
+	f.open(StringFormat("profile_chart_%s.html", inTag).c_str(), std::ofstream::out | std::ofstream::trunc);
 	if (!f.is_open()) 
 		return;
 

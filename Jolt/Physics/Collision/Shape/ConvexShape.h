@@ -1,3 +1,4 @@
+// Jolt Physics Library (https://github.com/jrouwe/JoltPhysics)
 // SPDX-FileCopyrightText: 2021 Jorrit Rouwe
 // SPDX-License-Identifier: MIT
 
@@ -13,10 +14,10 @@ JPH_NAMESPACE_BEGIN
 class CollideShapeSettings;
 
 /// Class that constructs a ConvexShape (abstract)
-class ConvexShapeSettings : public ShapeSettings
+class JPH_EXPORT ConvexShapeSettings : public ShapeSettings
 {
 public:
-	JPH_DECLARE_SERIALIZABLE_ABSTRACT(ConvexShapeSettings)
+	JPH_DECLARE_SERIALIZABLE_ABSTRACT(JPH_EXPORT, ConvexShapeSettings)
 
 	/// Constructor
 									ConvexShapeSettings() = default;
@@ -31,7 +32,7 @@ public:
 };
 
 /// Base class for all convex shapes. Defines a virtual interface.
-class ConvexShape : public Shape
+class JPH_EXPORT ConvexShape : public Shape
 {
 public:
 	JPH_OVERRIDE_NEW_DELETE
@@ -61,7 +62,7 @@ public:
 	virtual int						GetTrianglesNext(GetTrianglesContext &ioContext, int inMaxTrianglesRequested, Float3 *outTriangleVertices, const PhysicsMaterial **outMaterials = nullptr) const override;
 
 	// See Shape::GetSubmergedVolume
-	virtual void					GetSubmergedVolume(Mat44Arg inCenterOfMassTransform, Vec3Arg inScale, const Plane &inSurface, float &outTotalVolume, float &outSubmergedVolume, Vec3 &outCenterOfBuoyancy) const override;
+	virtual void					GetSubmergedVolume(Mat44Arg inCenterOfMassTransform, Vec3Arg inScale, const Plane &inSurface, float &outTotalVolume, float &outSubmergedVolume, Vec3 &outCenterOfBuoyancy JPH_IF_DEBUG_RENDERER(, RVec3Arg inBaseOffset)) const override;
 
 	/// Function that provides an interface for GJK
 	class Support
@@ -99,13 +100,6 @@ public:
 	/// inScale scales this shape in local space.
 	virtual const Support *			GetSupportFunction(ESupportMode inMode, SupportBuffer &inBuffer, Vec3Arg inScale) const = 0;
 
-	/// Type definition for a supporting face
-	using SupportingFace = StaticArray<Vec3, 32>;
-
-	/// Get the vertices of the face that faces inDirection the most (includes convex radius).
-	/// Face is relative to the center of mass of the shape.
-	virtual void					GetSupportingFace(Vec3Arg inDirection, Vec3Arg inScale, SupportingFace &outVertices) const = 0;
-
 	/// Material of the shape
 	void							SetMaterial(const PhysicsMaterial *inMaterial)				{ mMaterial = inMaterial; }
 	const PhysicsMaterial *			GetMaterial() const											{ return mMaterial != nullptr? mMaterial : PhysicsMaterial::sDefault; }
@@ -118,10 +112,10 @@ public:
 
 #ifdef JPH_DEBUG_RENDERER
 	// See Shape::DrawGetSupportFunction
-	virtual void					DrawGetSupportFunction(DebugRenderer *inRenderer, Mat44Arg inCenterOfMassTransform, Vec3Arg inScale, ColorArg inColor, bool inDrawSupportDirection) const override;
+	virtual void					DrawGetSupportFunction(DebugRenderer *inRenderer, RMat44Arg inCenterOfMassTransform, Vec3Arg inScale, ColorArg inColor, bool inDrawSupportDirection) const override;
 
 	// See Shape::DrawGetSupportingFace
-	virtual void					DrawGetSupportingFace(DebugRenderer *inRenderer, Mat44Arg inCenterOfMassTransform, Vec3Arg inScale) const override;
+	virtual void					DrawGetSupportingFace(DebugRenderer *inRenderer, RMat44Arg inCenterOfMassTransform, Vec3Arg inScale) const override;
 #endif // JPH_DEBUG_RENDERER
 
 	// See Shape
@@ -137,7 +131,7 @@ protected:
 	virtual void					RestoreBinaryState(StreamIn &inStream) override;
 
 	/// Vertex list that forms a unit sphere
-	static const vector<Vec3>		sUnitSphereTriangles;
+	static const std::vector<Vec3>	sUnitSphereTriangles;
 
 private:
 	// Class for GetTrianglesStart/Next

@@ -41,6 +41,10 @@ This categories shows vehicles created through the VehicleConstraint. These vehi
 |:-|
 |*Demonstrates a tracked vehicle with a turret constrained to the main body with hinge constraints.*|
 
+|[![Motorcycle Demo](https://img.youtube.com/vi/umI8FF0gVxs/hqdefault.jpg)](https://www.youtube.com/watch?v=umI8FF0gVxs)|
+|:-|
+|*Demonstrates a motor cycle.*|
+
 ### Rig (Ragdolls)
 
 This category demonstrates how ragdolls can be made and controlled using keyframing or motors.
@@ -68,6 +72,12 @@ This category demonstrates how ragdolls can be made and controlled using keyfram
 |[![160 Ragdolls Driven to Pose](https://img.youtube.com/vi/jhpsIqbsU4I/hqdefault.jpg)](https://www.youtube.com/watch?v=jhpsIqbsU4I)|
 |:-|
 |*A pile of ragdolls that are driven to a specific animated death pose. This gives the ragdolls 'stiffness'.*|
+
+### Soft Body
+
+|[![Character Demo](https://img.youtube.com/vi/vJX_3FNISkw/hqdefault.jpg)](https://www.youtube.com/watch?v=vJX_3FNISkw)|
+|:-|
+|*Demonstrates Soft Body physics as simulated by Jolt Physics. Soft body physics can be used for things like cloth and soft balls.*|
 
 ### Character
 
@@ -128,6 +138,14 @@ This category contains general simulation tests. It demonstrates things like fri
 |[![Multithreaded Island Simulation](https://img.youtube.com/vi/_Lv5xlWtCpM/hqdefault.jpg)](https://www.youtube.com/watch?v=_Lv5xlWtCpM)|
 |:-|
 |*We will automatically split up the simulation in islands of non-interacting bodies and distribute the work across multiple threads. Each island has its own color.*|
+
+|[![Single vs Double Precision](https://img.youtube.com/vi/KGnlYSW3550/hqdefault.jpg)](https://www.youtube.com/watch?v=KGnlYSW3550)|
+|:-|
+|*Shows the difference between compiling Jolt Physics in single precision and double precision (define JPH_DOUBLE_PRECISION).*|
+
+|[![Conveyor belt](https://img.youtube.com/vi/p_H6egZzbZE/hqdefault.jpg)](https://www.youtube.com/watch?v=p_H6egZzbZE)|
+|:-|
+|*A demo of setting the surface velocity of a body to create a conveyor belt. The boxes have decreasing friction from front to back (last one has zero friction so slowly slides down the ramp).*|
 
 ### Shapes & Scaled Shapes
 

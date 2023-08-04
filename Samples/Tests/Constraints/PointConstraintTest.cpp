@@ -1,3 +1,4 @@
+// Jolt Physics Library (https://github.com/jrouwe/JoltPhysics)
 // SPDX-FileCopyrightText: 2021 Jorrit Rouwe
 // SPDX-License-Identifier: MIT
 
@@ -31,7 +32,7 @@ void PointConstraintTest::Initialize()
 
 	// Bodies attached through point constraints
 	Quat rotation = Quat::sRotation(Vec3::sAxisZ(), 0.5f * JPH_PI);
-	Vec3 position(0, 50, 0);
+	RVec3 position(0, 50, 0);
 	Body &top = *mBodyInterface->CreateBody(BodyCreationSettings(new CapsuleShape(half_cylinder_height, 1), position, rotation, EMotionType::Static, Layers::NON_MOVING));
 	top.SetCollisionGroup(CollisionGroup(group_filter, 0, 0));
 	mBodyInterface->AddBody(top.GetID(), EActivation::DontActivate);

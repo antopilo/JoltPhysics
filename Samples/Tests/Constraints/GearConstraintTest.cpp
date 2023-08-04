@@ -1,3 +1,4 @@
+// Jolt Physics Library (https://github.com/jrouwe/JoltPhysics)
 // SPDX-FileCopyrightText: 2021 Jorrit Rouwe
 // SPDX-License-Identifier: MIT
 
@@ -63,7 +64,7 @@ void GearConstraintTest::Initialize()
 		gear1_settings.AddShape(rotation * Vec3(cGear1Radius, 0, 0), rotation, &tooth_settings);
 	}
 
-	Vec3 gear1_initial_p(0, 3.0f, 0);
+	RVec3 gear1_initial_p(0, 3.0f, 0);
 	Quat gear1_initial_r = Quat::sRotation(Vec3::sAxisX(), 0.5f * JPH_PI);
 	Body *gear1 = mBodyInterface->CreateBody(BodyCreationSettings(&gear1_settings, gear1_initial_p, gear1_initial_r, EMotionType::Dynamic, Layers::MOVING));
 	mBodyInterface->AddBody(gear1->GetID(), EActivation::Activate);
@@ -82,7 +83,7 @@ void GearConstraintTest::Initialize()
 		gear2_settings.AddShape(rotation * Vec3(cGear2Radius, 0, 0), rotation, &tooth_settings);
 	}
 
-	Vec3 gear2_initial_p = gear1_initial_p + Vec3(cGear1Radius + cGear2Radius + cToothHeight, 0, 0);
+	RVec3 gear2_initial_p = gear1_initial_p + Vec3(cGear1Radius + cGear2Radius + cToothHeight, 0, 0);
 	Quat gear2_initial_r = gear1_initial_r;
 	Body *gear2 = mBodyInterface->CreateBody(BodyCreationSettings(&gear2_settings, gear2_initial_p, gear2_initial_r, EMotionType::Dynamic, Layers::MOVING));
 	mBodyInterface->AddBody(gear2->GetID(), EActivation::Activate);

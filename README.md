@@ -16,7 +16,7 @@ A multi core friendly rigid body physics and collision detection library suitabl
 
 For more demos and [videos](https://www.youtube.com/watch?v=pwyCW0yNKMA&list=PLYXVwtOr1CBxbA50jVg2dKUQvHW_5OOom) go to the [Samples](Docs/Samples.md) section.
 
-To get started, look at the [HelloWorld](HelloWorld/HelloWorld.cpp) example.
+To get started, look at the [HelloWorld](HelloWorld/HelloWorld.cpp) example. A [HelloWorld example using CMake FetchContent](https://github.com/jrouwe/JoltPhysicsHelloWorld) is also available to show how you can integrate Jolt Physics in a CMake project.
 
 If you're interested in how Jolt scales with multiple CPUs and compares to other physics engines, take a look at [this document](https://jrouwe.nl/jolt/JoltPhysicsMulticoreScaling.pdf).
 
@@ -38,7 +38,7 @@ For more information see the [Architecture and API documentation](https://jrouwe
 
 ## Features
 
-* Simulation of rigid bodies of various shapes using continous collision detection:
+* Simulation of rigid bodies of various shapes using continuous collision detection:
 	* Sphere.
 	* Box.
 	* Capsule.
@@ -76,16 +76,21 @@ For more information see the [Architecture and API documentation](https://jrouwe
 * Game character simulation (capsule)
 	* Rigid body character. Moves during the physics simulation. Cheapest option and most accurate collision response between character and dynamic bodies.
 	* Virtual character. Does not have a rigid body in the world but simulates one using collision checks. Updated outside of the physics update for more control. Less accurate interaction with dynamic bodies.
-* Vehicle simulation of wheeled and tracked vehicles.
+* Vehicles
+	* Wheeled vehicles.
+	* Tracked vehicles.
+	* Motorcycles.
+* Soft body simulation (e.g. a soft ball or piece of cloth).
 * Water buoyancy calculations.
+* An optional double precision mode that allows large worlds.
 
 ## Supported Platforms
 
-* Windows (VS2019, VS2022) x64/x86 (Desktop/UWP)
-* Linux (tested on Ubuntu 20.04) x64/ARM64
+* Windows (VS2019, VS2022) x86/x64/ARM/ARM64 (Desktop/UWP)
+* Linux (tested on Ubuntu 22.04) x64/ARM64
 * Android (tested on Android 10) x64/ARM64
 * Platform Blue (a popular game console) x64
-* MacOS (tested on Monterey) x64/ARM64
+* macOS (tested on Monterey) x64/ARM64
 * iOS (tested on iOS 15) x64/ARM64
 * WebAssembly, see [this](https://github.com/jrouwe/JoltPhysics.js) separate project.
 
@@ -117,6 +122,26 @@ For build instructions go to the [Build](Build/README.md) section. When upgradin
 * UnitTests - A set of unit tests to validate the behavior of the physics engine.
 * WebIncludes - A number of JavaScript resources used by the internal profiling framework of the physics engine.
 
+## Bindings For Other Languages
+
+* C [here](https://github.com/michal-z/zig-gamedev/tree/main/libs/zphysics/libs) and [here](https://github.com/amerkoleci/JoltPhysicsSharp/tree/main/src/joltc)
+* [C#](https://github.com/amerkoleci/JoltPhysicsSharp)
+* [Java](https://github.com/aecsocket/jolt-java)
+* [JavaScript](https://github.com/jrouwe/JoltPhysics.js)
+* [Zig](https://github.com/michal-z/zig-gamedev/tree/main/libs/zphysics)
+
+## Integrations in Other Engines
+
+* [ezEngine](https://github.com/ezEngine/ezEngine)
+* [Godot](https://github.com/godot-jolt/godot-jolt)
+* [Source Engine](https://github.com/Joshua-Ashton/VPhysics-Jolt)
+
+See [a list of projects that use Jolt Physics here](Docs/ProjectsUsingJolt.md).
+
 ## License
 
 The project is distributed under the [MIT license](LICENSE).
+
+## Contributions
+
+All contributions are welcome! If you intend to make larger changes, please discuss first in the GitHub Discussion section. For non-trivial changes, we require that you agree to a [Contributor Agreement](ContributorAgreement.md). When you create a PR, [CLA assistant](https://cla-assistant.io/) will prompt you to sign it.

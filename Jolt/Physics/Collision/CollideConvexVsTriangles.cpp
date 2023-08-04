@@ -1,3 +1,4 @@
+// Jolt Physics Library (https://github.com/jrouwe/JoltPhysics)
 // SPDX-FileCopyrightText: 2021 Jorrit Rouwe
 // SPDX-License-Identifier: MIT
 
@@ -132,11 +133,7 @@ void CollideConvexVsTriangles::Collide(Vec3Arg inV0, Vec3Arg inV1, Vec3Arg inV2,
 	if (mCollideShapeSettings.mCollectFacesMode == ECollectFacesMode::CollectFaces)
 	{
 		// Get supporting face of shape 1
-		mShape1->GetSupportingFace(-penetration_axis, mScale1, result.mShape1Face);
-
-		// Convert to world space
-		for (Vec3 &p : result.mShape1Face)
-			p = mTransform1 * p;
+		mShape1->GetSupportingFace(SubShapeID(), -penetration_axis, mScale1, mTransform1, result.mShape1Face);
 
 		// Get face of the triangle
 		triangle.GetSupportingFace(penetration_axis, result.mShape2Face);

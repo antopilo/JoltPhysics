@@ -1,3 +1,4 @@
+// Jolt Physics Library (https://github.com/jrouwe/JoltPhysics)
 // SPDX-FileCopyrightText: 2021 Jorrit Rouwe
 // SPDX-License-Identifier: MIT
 
@@ -8,7 +9,7 @@
 JPH_NAMESPACE_BEGIN
 
 /// Underlying data type for ByteBuffer
-using ByteBufferVector = vector<uint8, STLAlignedAllocator<uint8, JPH_CACHE_LINE_SIZE>>;
+using ByteBufferVector = std::vector<uint8, STLAlignedAllocator<uint8, JPH_CACHE_LINE_SIZE>>;
 
 /// Simple byte buffer, aligned to a cache line
 class ByteBuffer : public ByteBufferVector

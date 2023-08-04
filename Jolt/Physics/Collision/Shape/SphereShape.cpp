@@ -1,3 +1,4 @@
+// Jolt Physics Library (https://github.com/jrouwe/JoltPhysics)
 // SPDX-FileCopyrightText: 2021 Jorrit Rouwe
 // SPDX-License-Identifier: MIT
 
@@ -10,6 +11,7 @@
 #include <Jolt/Physics/Collision/CastResult.h>
 #include <Jolt/Physics/Collision/CollidePointResult.h>
 #include <Jolt/Physics/Collision/TransformedShape.h>
+#include <Jolt/Physics/SoftBody/SoftBodyVertex.h>
 #include <Jolt/Geometry/RaySphere.h>
 #include <Jolt/Geometry/Plane.h>
 #include <Jolt/Core/StreamIn.h>
@@ -29,16 +31,16 @@ JPH_IMPLEMENT_SERIALIZABLE_VIRTUAL(SphereShapeSettings)
 }
 
 ShapeSettings::ShapeResult SphereShapeSettings::Create() const
-{ 
+{
 	if (mCachedResult.IsEmpty())
-		Ref<Shape> shape = new SphereShape(*this, mCachedResult); 
+		Ref<Shape> shape = new SphereShape(*this, mCachedResult);
 	return mCachedResult;
 }
 
-SphereShape::SphereShape(const SphereShapeSettings &inSettings, ShapeResult &outResult) : 
-	ConvexShape(EShapeSubType::Sphere, inSettings, outResult), 
-	mRadius(inSettings.mRadius) 
-{ 
+SphereShape::SphereShape(const SphereShapeSettings &inSettings, ShapeResult &outResult) :
+	ConvexShape(EShapeSubType::Sphere, inSettings, outResult),
+	mRadius(inSettings.mRadius)
+{
 	if (inSettings.mRadius <= 0.0f)
 	{
 		outResult.SetError("Invalid radius");
@@ -56,19 +58,19 @@ float SphereShape::GetScaledRadius(Vec3Arg inScale) const
 	return abs_scale.GetX() * mRadius;
 }
 
-AABox SphereShape::GetLocalBounds() const 
-{ 
-	Vec3 half_extent = Vec3::sReplicate(mRadius); 
-	return AABox(-half_extent, half_extent); 
+AABox SphereShape::GetLocalBounds() const
+{
+	Vec3 half_extent = Vec3::sReplicate(mRadius);
+	return AABox(-half_extent, half_extent);
 }
-		
+
 AABox SphereShape::GetWorldSpaceBounds(Mat44Arg inCenterOfMassTransform, Vec3Arg inScale) const
-{ 
+{
 	float scaled_radius = GetScaledRadius(inScale);
 	Vec3 half_extent = Vec3::sReplicate(scaled_radius);
-	AABox bounds(-half_extent, half_extent); 
-	bounds.Translate(inCenterOfMassTransform.GetTranslation()); 
-	return bounds; 
+	AABox bounds(-half_extent, half_extent);
+	bounds.Translate(inCenterOfMassTransform.GetTranslation());
+	return bounds;
 }
 
 class SphereShape::SphereNoConvex final : public Support
@@ -76,13 +78,13 @@ class SphereShape::SphereNoConvex final : public Support
 public:
 	explicit		SphereNoConvex(float inRadius) :
 		mRadius(inRadius)
-	{ 
-		static_assert(sizeof(SphereNoConvex) <= sizeof(SupportBuffer), "Buffer size too small"); 
+	{
+		static_assert(sizeof(SphereNoConvex) <= sizeof(SupportBuffer), "Buffer size too small");
 		JPH_ASSERT(IsAligned(this, alignof(SphereNoConvex)));
 	}
 
 	virtual Vec3	GetSupport(Vec3Arg inDirection) const override
-	{ 
+	{
 		return Vec3::sZero();
 	}
 
@@ -100,13 +102,13 @@ class SphereShape::SphereWithConvex final : public Support
 public:
 	explicit		SphereWithConvex(float inRadius) :
 		mRadius(inRadius)
-	{ 
-		static_assert(sizeof(SphereWithConvex) <= sizeof(SupportBuffer), "Buffer size too small"); 
+	{
+		static_assert(sizeof(SphereWithConvex) <= sizeof(SupportBuffer), "Buffer size too small");
 		JPH_ASSERT(IsAligned(this, alignof(SphereWithConvex)));
 	}
 
 	virtual Vec3	GetSupport(Vec3Arg inDirection) const override
-	{ 
+	{
 		float len = inDirection.Length();
 		return len > 0.0f? (mRadius / len) * inDirection : Vec3::sZero();
 	}
@@ -152,15 +154,15 @@ MassProperties SphereShape::GetMassProperties() const
 	return p;
 }
 
-Vec3 SphereShape::GetSurfaceNormal(const SubShapeID &inSubShapeID, Vec3Arg inLocalSurfacePosition) const 
-{ 
-	JPH_ASSERT(inSubShapeID.IsEmpty(), "Invalid subshape ID"); 
+Vec3 SphereShape::GetSurfaceNormal(const SubShapeID &inSubShapeID, Vec3Arg inLocalSurfacePosition) const
+{
+	JPH_ASSERT(inSubShapeID.IsEmpty(), "Invalid subshape ID");
 
-	float len = inLocalSurfacePosition.Length(); 
+	float len = inLocalSurfacePosition.Length();
 	return len != 0.0f? inLocalSurfacePosition / len : Vec3::sAxisY();
 }
 
-void SphereShape::GetSubmergedVolume(Mat44Arg inCenterOfMassTransform, Vec3Arg inScale, const Plane &inSurface, float &outTotalVolume, float &outSubmergedVolume, Vec3 &outCenterOfBuoyancy) const
+void SphereShape::GetSubmergedVolume(Mat44Arg inCenterOfMassTransform, Vec3Arg inScale, const Plane &inSurface, float &outTotalVolume, float &outSubmergedVolume, Vec3 &outCenterOfBuoyancy JPH_IF_DEBUG_RENDERER(, RVec3Arg inBaseOffset)) const
 {
 	float scaled_radius = GetScaledRadius(inScale);
 	outTotalVolume = (4.0f / 3.0f * JPH_PI) * Cubed(scaled_radius);
@@ -196,7 +198,7 @@ void SphereShape::GetSubmergedVolume(Mat44Arg inCenterOfMassTransform, Vec3Arg i
 		{
 			Vec3 circle_center = inCenterOfMassTransform.GetTranslation() - distance_to_surface * inSurface.GetNormal();
 			float circle_radius = sqrt(Square(scaled_radius) - Square(distance_to_surface));
-			DebugRenderer::sInstance->DrawPie(circle_center, circle_radius, inSurface.GetNormal(), inSurface.GetNormal().GetNormalizedPerpendicular(), -JPH_PI, JPH_PI, Color::sGreen, DebugRenderer::ECastShadow::Off);
+			DebugRenderer::sInstance->DrawPie(inBaseOffset + circle_center, circle_radius, inSurface.GetNormal(), inSurface.GetNormal().GetNormalizedPerpendicular(), -JPH_PI, JPH_PI, Color::sGreen, DebugRenderer::ECastShadow::Off);
 		}
 	#endif // JPH_DEBUG_RENDERER
 	}
@@ -204,12 +206,12 @@ void SphereShape::GetSubmergedVolume(Mat44Arg inCenterOfMassTransform, Vec3Arg i
 #ifdef JPH_DEBUG_RENDERER
 	// Draw center of buoyancy
 	if (sDrawSubmergedVolumes)
-		DebugRenderer::sInstance->DrawWireSphere(outCenterOfBuoyancy, 0.05f, Color::sRed, 1);
+		DebugRenderer::sInstance->DrawWireSphere(inBaseOffset + outCenterOfBuoyancy, 0.05f, Color::sRed, 1);
 #endif // JPH_DEBUG_RENDERER
 }
 
 #ifdef JPH_DEBUG_RENDERER
-void SphereShape::Draw(DebugRenderer *inRenderer, Mat44Arg inCenterOfMassTransform, Vec3Arg inScale, ColorArg inColor, bool inUseMaterialColors, bool inDrawWireframe) const
+void SphereShape::Draw(DebugRenderer *inRenderer, RMat44Arg inCenterOfMassTransform, Vec3Arg inScale, ColorArg inColor, bool inUseMaterialColors, bool inDrawWireframe) const
 {
 	DebugRenderer::EDrawMode draw_mode = inDrawWireframe? DebugRenderer::EDrawMode::Wireframe : DebugRenderer::EDrawMode::Solid;
 	inRenderer->DrawUnitSphere(inCenterOfMassTransform * Mat44::sScale(mRadius * inScale.Abs().GetX()), inUseMaterialColors? GetMaterial()->GetDebugColor() : inColor, DebugRenderer::ECastShadow::On, draw_mode);
@@ -231,7 +233,7 @@ bool SphereShape::CastRay(const RayCast &inRay, const SubShapeIDCreator &inSubSh
 void SphereShape::CastRay(const RayCast &inRay, const RayCastSettings &inRayCastSettings, const SubShapeIDCreator &inSubShapeIDCreator, CastRayCollector &ioCollector, const ShapeFilter &inShapeFilter) const
 {
 	// Test shape filter
-	if (!inShapeFilter.ShouldCollide(inSubShapeIDCreator.GetID()))
+	if (!inShapeFilter.ShouldCollide(this, inSubShapeIDCreator.GetID()))
 		return;
 
 	float min_fraction, max_fraction;
@@ -253,7 +255,7 @@ void SphereShape::CastRay(const RayCast &inRay, const RayCastSettings &inRayCast
 		}
 
 		// Check back side hit
-		if (inRayCastSettings.mBackFaceMode == EBackFaceMode::CollideWithBackFaces 
+		if (inRayCastSettings.mBackFaceMode == EBackFaceMode::CollideWithBackFaces
 			&& num_results > 1 // Ray should have 2 intersections
 			&& max_fraction < ioCollector.GetEarlyOutFraction()) // End of ray should be before early out fraction
 		{
@@ -266,18 +268,44 @@ void SphereShape::CastRay(const RayCast &inRay, const RayCastSettings &inRayCast
 void SphereShape::CollidePoint(Vec3Arg inPoint, const SubShapeIDCreator &inSubShapeIDCreator, CollidePointCollector &ioCollector, const ShapeFilter &inShapeFilter) const
 {
 	// Test shape filter
-	if (!inShapeFilter.ShouldCollide(inSubShapeIDCreator.GetID()))
+	if (!inShapeFilter.ShouldCollide(this, inSubShapeIDCreator.GetID()))
 		return;
 
 	if (inPoint.LengthSq() <= Square(mRadius))
 		ioCollector.AddHit({ TransformedShape::sGetBodyID(ioCollector.GetContext()), inSubShapeIDCreator.GetID() });
 }
 
+void SphereShape::CollideSoftBodyVertices(Mat44Arg inCenterOfMassTransform, Array<SoftBodyVertex> &ioVertices, [[maybe_unused]] float inDeltaTime, [[maybe_unused]] Vec3Arg inDisplacementDueToGravity, int inCollidingShapeIndex) const
+{
+	Vec3 center = inCenterOfMassTransform.GetTranslation();
+
+	for (SoftBodyVertex &v : ioVertices)
+		if (v.mInvMass > 0.0f)
+		{
+			// Calculate penetration
+			Vec3 delta = v.mPosition - center;
+			float distance = delta.Length();
+			float penetration = mRadius - distance;
+			if (penetration > v.mLargestPenetration)
+			{
+				v.mLargestPenetration = penetration;
+
+				// Calculate contact point and normal
+				Vec3 normal = distance > 0.0f? delta / distance : Vec3::sAxisY();
+				Vec3 point = center + mRadius * normal;
+
+				// Store collision
+				v.mCollisionPlane = Plane::sFromPointAndNormal(point, normal);
+				v.mCollidingShapeIndex = inCollidingShapeIndex;
+			}
+		}
+}
+
 void SphereShape::TransformShape(Mat44Arg inCenterOfMassTransform, TransformedShapeCollector &ioCollector) const
 {
 	Vec3 scale;
 	Mat44 transform = inCenterOfMassTransform.Decompose(scale);
-	TransformedShape ts(transform.GetTranslation(), transform.GetRotation().GetQuaternion(), this, BodyID(), SubShapeIDCreator());
+	TransformedShape ts(RVec3(transform.GetTranslation()), transform.GetRotation().GetQuaternion(), this, BodyID(), SubShapeIDCreator());
 	ts.SetShapeScale(ScaleHelpers::MakeUniformScale(scale.Abs()));
 	ioCollector.AddHit(ts);
 }

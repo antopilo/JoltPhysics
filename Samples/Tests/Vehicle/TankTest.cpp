@@ -1,3 +1,4 @@
+// Jolt Physics Library (https://github.com/jrouwe/JoltPhysics)
 // SPDX-FileCopyrightText: 2021 Jorrit Rouwe
 // SPDX-License-Identifier: MIT
 
@@ -65,7 +66,7 @@ void TankTest::Initialize()
 	GroupFilter *filter = new GroupFilterTable;
 
 	// Create tank body
-	Vec3 body_position(0, 2, 0);
+	RVec3 body_position(0, 2, 0);
 	RefConst<Shape> tank_body_shape = OffsetCenterOfMassShapeSettings(Vec3(0, -half_vehicle_height, 0), new BoxShape(Vec3(half_vehicle_width, half_vehicle_height, half_vehicle_length))).Create().Get();
 	BodyCreationSettings tank_body_settings(tank_body_shape, body_position, Quat::sIdentity(), EMotionType::Dynamic, Layers::MOVING);
 	tank_body_settings.mCollisionGroup.SetGroupFilter(filter);
@@ -100,7 +101,7 @@ void TankTest::Initialize()
 			w->mWidth = wheel_width;
 			w->mSuspensionMinLength = suspension_min_length;
 			w->mSuspensionMaxLength = wheel == 0 || wheel == size(wheel_pos) - 1? suspension_min_length : suspension_max_length;
-			w->mSuspensionFrequency = suspension_frequency;
+			w->mSuspensionSpring.mFrequency = suspension_frequency;
 
 			// Add the wheel to the vehicle
 			track.mWheels.push_back((uint)vehicle.mWheels.size());
@@ -117,7 +118,7 @@ void TankTest::Initialize()
 	mPhysicsSystem->AddStepListener(mVehicleConstraint);
 
 	// Create turret
-	Vec3 turret_position = body_position + Vec3(0, half_vehicle_height + half_turret_height, 0);
+	RVec3 turret_position = body_position + Vec3(0, half_vehicle_height + half_turret_height, 0);
 	BodyCreationSettings turret_body_setings(new BoxShape(Vec3(half_turret_width, half_turret_height, half_turret_length)), turret_position, Quat::sIdentity(), EMotionType::Dynamic, Layers::MOVING);
 	turret_body_setings.mCollisionGroup.SetGroupFilter(filter);
 	turret_body_setings.mCollisionGroup.SetGroupID(0);
@@ -138,7 +139,7 @@ void TankTest::Initialize()
 	mPhysicsSystem->AddConstraint(mTurretHinge);
 
 	// Create barrel
-	Vec3 barrel_position = turret_position + Vec3(0, 0, half_turret_length + half_barrel_length - barrel_rotation_offset);
+	RVec3 barrel_position = turret_position + Vec3(0, 0, half_turret_length + half_barrel_length - barrel_rotation_offset);
 	BodyCreationSettings barrel_body_setings(new CylinderShape(half_barrel_length, barrel_radius), barrel_position, Quat::sRotation(Vec3::sAxisX(), 0.5f * JPH_PI), EMotionType::Dynamic, Layers::MOVING);
 	barrel_body_setings.mCollisionGroup.SetGroupFilter(filter);
 	barrel_body_setings.mCollisionGroup.SetGroupID(0);
@@ -163,6 +164,8 @@ void TankTest::Initialize()
 
 void TankTest::PrePhysicsUpdate(const PreUpdateParams &inParams)
 {
+	VehicleTest::PrePhysicsUpdate(inParams);
+
 	const float min_velocity_pivot_turn = 1.0f;
 
 	const float bullet_radius = 0.061f; // 120 mm
@@ -229,7 +232,7 @@ void TankTest::PrePhysicsUpdate(const PreUpdateParams &inParams)
 	static_cast<TrackedVehicleController *>(mVehicleConstraint->GetController())->SetDriverInput(forward, left_ratio, right_ratio, brake);
 
 	// Cast ray to find target
-	RayCast ray { inParams.mCameraState.mPos, 1000.0f * inParams.mCameraState.mForward };
+	RRayCast ray { inParams.mCameraState.mPos, 1000.0f * inParams.mCameraState.mForward };
 	RayCastSettings ray_settings;
 	ClosestHitCollisionCollector<CastRayCollector> collector;
 	IgnoreMultipleBodiesFilter body_filter;
@@ -238,18 +241,18 @@ void TankTest::PrePhysicsUpdate(const PreUpdateParams &inParams)
 	body_filter.IgnoreBody(mTurretBody->GetID());
 	body_filter.IgnoreBody(mBarrelBody->GetID());
 	mPhysicsSystem->GetNarrowPhaseQuery().CastRay(ray, ray_settings, collector, {}, {}, body_filter);
-	Vec3 hit_pos = collector.HadHit()? inParams.mCameraState.mPos + collector.mHit.mFraction * ray.mDirection : inParams.mCameraState.mPos + ray.mDirection;
+	RVec3 hit_pos = collector.HadHit()? ray.GetPointOnRay(collector.mHit.mFraction) : ray.mOrigin + ray.mDirection;
 	mDebugRenderer->DrawMarker(hit_pos, Color::sGreen, 1.0f);
 
 	// Orient the turret towards the hit position
-	Mat44 turret_to_world = mTankBody->GetCenterOfMassTransform() * mTurretHinge->GetConstraintToBody1Matrix();
-	Vec3 hit_pos_in_turret = turret_to_world.InversedRotationTranslation() * hit_pos;
+	RMat44 turret_to_world = mTankBody->GetCenterOfMassTransform() * mTurretHinge->GetConstraintToBody1Matrix();
+	Vec3 hit_pos_in_turret = Vec3(turret_to_world.InversedRotationTranslation() * hit_pos);
 	float heading = ATan2(hit_pos_in_turret.GetZ(), hit_pos_in_turret.GetY());
 	mTurretHinge->SetTargetAngle(heading);
 
 	// Orient barrel towards the hit position
-	Mat44 barrel_to_world = mTurretBody->GetCenterOfMassTransform() * mBarrelHinge->GetConstraintToBody1Matrix();
-	Vec3 hit_pos_in_barrel = barrel_to_world.InversedRotationTranslation() * hit_pos;
+	RMat44 barrel_to_world = mTurretBody->GetCenterOfMassTransform() * mBarrelHinge->GetConstraintToBody1Matrix();
+	Vec3 hit_pos_in_barrel = Vec3(barrel_to_world.InversedRotationTranslation() * hit_pos);
 	float pitch = ATan2(hit_pos_in_barrel.GetZ(), hit_pos_in_barrel.GetY());
 	mBarrelHinge->SetTargetAngle(pitch);
 
@@ -281,21 +284,37 @@ void TankTest::PrePhysicsUpdate(const PreUpdateParams &inParams)
 	for (uint w = 0; w < mVehicleConstraint->GetWheels().size(); ++w)
 	{
 		const WheelSettings *settings = mVehicleConstraint->GetWheels()[w]->GetSettings();
-		Mat44 wheel_transform = mVehicleConstraint->GetWheelWorldTransform(w, Vec3::sAxisY(), Vec3::sAxisX()); // The cylinder we draw is aligned with Y so we specify that as rotational axis
+		RMat44 wheel_transform = mVehicleConstraint->GetWheelWorldTransform(w, Vec3::sAxisY(), Vec3::sAxisX()); // The cylinder we draw is aligned with Y so we specify that as rotational axis
 		mDebugRenderer->DrawCylinder(wheel_transform, 0.5f * settings->mWidth, settings->mRadius, Color::sGreen);
 	}
 }
 
-void TankTest::GetInitialCamera(CameraState &ioState) const 
+void TankTest::SaveState(StateRecorder& inStream) const
+{
+	VehicleTest::SaveState(inStream);
+
+	inStream.Write(mPreviousForward);
+	inStream.Write(mReloadTime);
+}
+
+void TankTest::RestoreState(StateRecorder& inStream)
+{
+	VehicleTest::RestoreState(inStream);
+
+	inStream.Read(mPreviousForward);
+	inStream.Read(mReloadTime);
+}
+
+void TankTest::GetInitialCamera(CameraState &ioState) const
 {
 	// Position camera behind tank
-	ioState.mPos = Vec3(0, 4.0f, 0);
+	ioState.mPos = RVec3(0, 4.0f, 0);
 	ioState.mForward = Vec3(0, -2.0f, 10.0f).Normalized();
 }
 
-Mat44 TankTest::GetCameraPivot(float inCameraHeading, float inCameraPitch) const 
+RMat44 TankTest::GetCameraPivot(float inCameraHeading, float inCameraPitch) const 
 {
 	// Pivot is center of tank + a distance away from the tank based on the heading and pitch of the camera
 	Vec3 fwd = Vec3(Cos(inCameraPitch) * Cos(inCameraHeading), Sin(inCameraPitch), Cos(inCameraPitch) * Sin(inCameraHeading));
-	return Mat44::sTranslation(mTankBody->GetPosition() - 10.0f * fwd);
+	return RMat44::sTranslation(mTankBody->GetPosition() - 10.0f * fwd);
 }

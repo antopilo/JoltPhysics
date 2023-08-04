@@ -1,3 +1,4 @@
+// Jolt Physics Library (https://github.com/jrouwe/JoltPhysics)
 // SPDX-FileCopyrightText: 2021 Jorrit Rouwe
 // SPDX-License-Identifier: MIT
 
@@ -28,7 +29,7 @@ void StackTest::Initialize()
 			rotation = Quat::sRotation(Vec3::sAxisY(), 0.5f * JPH_PI);
 		else
 			rotation = Quat::sIdentity();
-		Body &stack = *mBodyInterface->CreateBody(BodyCreationSettings(box_shape, Vec3(10, 1.0f + i * 2.1f, 0), rotation, EMotionType::Dynamic, Layers::MOVING));
+		Body &stack = *mBodyInterface->CreateBody(BodyCreationSettings(box_shape, RVec3(10, 1.0f + i * 2.1f, 0), rotation, EMotionType::Dynamic, Layers::MOVING));
 		mBodyInterface->AddBody(stack.GetID(), EActivation::Activate);
 	}
 }

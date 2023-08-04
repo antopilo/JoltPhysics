@@ -19,10 +19,16 @@ set(SAMPLES_SRC_FILES
 	${SAMPLES_ROOT}/Tests/Character/CharacterTest.h
 	${SAMPLES_ROOT}/Tests/Character/CharacterVirtualTest.cpp
 	${SAMPLES_ROOT}/Tests/Character/CharacterVirtualTest.h
+	${SAMPLES_ROOT}/Tests/Character/CharacterSpaceShipTest.cpp
+	${SAMPLES_ROOT}/Tests/Character/CharacterSpaceShipTest.h
 	${SAMPLES_ROOT}/Tests/Constraints/ConeConstraintTest.cpp
 	${SAMPLES_ROOT}/Tests/Constraints/ConeConstraintTest.h
+	${SAMPLES_ROOT}/Tests/Constraints/ConstraintPriorityTest.cpp
+	${SAMPLES_ROOT}/Tests/Constraints/ConstraintPriorityTest.h
 	${SAMPLES_ROOT}/Tests/Constraints/ConstraintSingularityTest.cpp
 	${SAMPLES_ROOT}/Tests/Constraints/ConstraintSingularityTest.h
+	${SAMPLES_ROOT}/Tests/Constraints/ConstraintVsCOMChangeTest.cpp
+	${SAMPLES_ROOT}/Tests/Constraints/ConstraintVsCOMChangeTest.h
 	${SAMPLES_ROOT}/Tests/Constraints/DistanceConstraintTest.cpp
 	${SAMPLES_ROOT}/Tests/Constraints/DistanceConstraintTest.h
 	${SAMPLES_ROOT}/Tests/Constraints/FixedConstraintTest.cpp
@@ -71,10 +77,16 @@ set(SAMPLES_SRC_FILES
 	${SAMPLES_ROOT}/Tests/ConvexCollision/RandomRayTest.h
 	${SAMPLES_ROOT}/Tests/General/ActiveEdgesTest.cpp
 	${SAMPLES_ROOT}/Tests/General/ActiveEdgesTest.h
+	${SAMPLES_ROOT}/Tests/General/AllowedDOFsTest.cpp
+	${SAMPLES_ROOT}/Tests/General/AllowedDOFsTest.h
 	${SAMPLES_ROOT}/Tests/General/BigVsSmallTest.cpp
 	${SAMPLES_ROOT}/Tests/General/BigVsSmallTest.h
+	${SAMPLES_ROOT}/Tests/General/ShapeFilterTest.cpp
+	${SAMPLES_ROOT}/Tests/General/ShapeFilterTest.h
 	${SAMPLES_ROOT}/Tests/General/CenterOfMassTest.cpp
 	${SAMPLES_ROOT}/Tests/General/CenterOfMassTest.h
+	${SAMPLES_ROOT}/Tests/General/ChangeMotionQualityTest.cpp
+	${SAMPLES_ROOT}/Tests/General/ChangeMotionQualityTest.h
 	${SAMPLES_ROOT}/Tests/General/ChangeMotionTypeTest.cpp
 	${SAMPLES_ROOT}/Tests/General/ChangeMotionTypeTest.h
 	${SAMPLES_ROOT}/Tests/General/ChangeShapeTest.cpp
@@ -85,6 +97,8 @@ set(SAMPLES_SRC_FILES
 	${SAMPLES_ROOT}/Tests/General/ContactListenerTest.h
 	${SAMPLES_ROOT}/Tests/General/ContactManifoldTest.cpp
 	${SAMPLES_ROOT}/Tests/General/ContactManifoldTest.h
+	${SAMPLES_ROOT}/Tests/General/ConveyorBeltTest.cpp
+	${SAMPLES_ROOT}/Tests/General/ConveyorBeltTest.h
 	${SAMPLES_ROOT}/Tests/General/DampingTest.cpp
 	${SAMPLES_ROOT}/Tests/General/DampingTest.h
 	${SAMPLES_ROOT}/Tests/General/DynamicMeshTest.cpp
@@ -111,8 +125,12 @@ set(SAMPLES_SRC_FILES
 	${SAMPLES_ROOT}/Tests/General/LoadSaveSceneTest.h
 	${SAMPLES_ROOT}/Tests/General/ManifoldReductionTest.cpp
 	${SAMPLES_ROOT}/Tests/General/ManifoldReductionTest.h
+	${SAMPLES_ROOT}/Tests/General/ModifyMassTest.cpp
+	${SAMPLES_ROOT}/Tests/General/ModifyMassTest.h
 	${SAMPLES_ROOT}/Tests/General/MultithreadedTest.cpp
 	${SAMPLES_ROOT}/Tests/General/MultithreadedTest.h
+	${SAMPLES_ROOT}/Tests/General/PyramidTest.cpp
+	${SAMPLES_ROOT}/Tests/General/PyramidTest.h
 	${SAMPLES_ROOT}/Tests/General/RestitutionTest.cpp
 	${SAMPLES_ROOT}/Tests/General/RestitutionTest.h
 	${SAMPLES_ROOT}/Tests/General/SensorTest.cpp
@@ -121,10 +139,14 @@ set(SAMPLES_SRC_FILES
 	${SAMPLES_ROOT}/Tests/General/SimpleTest.h
 	${SAMPLES_ROOT}/Tests/General/StackTest.cpp
 	${SAMPLES_ROOT}/Tests/General/StackTest.h
+	${SAMPLES_ROOT}/Tests/General/TwoDFunnelTest.cpp
+	${SAMPLES_ROOT}/Tests/General/TwoDFunnelTest.h
 	${SAMPLES_ROOT}/Tests/General/WallTest.cpp
 	${SAMPLES_ROOT}/Tests/General/WallTest.h
 	${SAMPLES_ROOT}/Tests/General/ActivateDuringUpdateTest.cpp
 	${SAMPLES_ROOT}/Tests/General/ActivateDuringUpdateTest.h
+	${SAMPLES_ROOT}/Tests/Rig/BigWorldTest.cpp
+	${SAMPLES_ROOT}/Tests/Rig/BigWorldTest.h
 	${SAMPLES_ROOT}/Tests/Rig/CreateRigTest.cpp
 	${SAMPLES_ROOT}/Tests/Rig/CreateRigTest.h
 	${SAMPLES_ROOT}/Tests/Rig/KinematicRigTest.cpp
@@ -139,6 +161,20 @@ set(SAMPLES_SRC_FILES
 	${SAMPLES_ROOT}/Tests/Rig/RigPileTest.h
 	${SAMPLES_ROOT}/Tests/Rig/SkeletonMapperTest.cpp
 	${SAMPLES_ROOT}/Tests/Rig/SkeletonMapperTest.h
+	${SAMPLES_ROOT}/Tests/SoftBody/SoftBodyFrictionTest.cpp
+	${SAMPLES_ROOT}/Tests/SoftBody/SoftBodyFrictionTest.h
+	${SAMPLES_ROOT}/Tests/SoftBody/SoftBodyGravityFactorTest.cpp
+	${SAMPLES_ROOT}/Tests/SoftBody/SoftBodyGravityFactorTest.h
+	${SAMPLES_ROOT}/Tests/SoftBody/SoftBodyKinematicTest.cpp
+	${SAMPLES_ROOT}/Tests/SoftBody/SoftBodyKinematicTest.h
+	${SAMPLES_ROOT}/Tests/SoftBody/SoftBodyPressureTest.cpp
+	${SAMPLES_ROOT}/Tests/SoftBody/SoftBodyPressureTest.h
+	${SAMPLES_ROOT}/Tests/SoftBody/SoftBodyRestitutionTest.cpp
+	${SAMPLES_ROOT}/Tests/SoftBody/SoftBodyRestitutionTest.h
+	${SAMPLES_ROOT}/Tests/SoftBody/SoftBodyShapesTest.cpp
+	${SAMPLES_ROOT}/Tests/SoftBody/SoftBodyShapesTest.h
+	${SAMPLES_ROOT}/Tests/SoftBody/SoftBodyUpdatePositionTest.cpp
+	${SAMPLES_ROOT}/Tests/SoftBody/SoftBodyUpdatePositionTest.h
 	${SAMPLES_ROOT}/Tests/Test.cpp
 	${SAMPLES_ROOT}/Tests/Test.h
 	${SAMPLES_ROOT}/Tests/Tools/LoadSnapshotTest.cpp
@@ -193,6 +229,8 @@ set(SAMPLES_SRC_FILES
 	${SAMPLES_ROOT}/Tests/Shapes/TaperedCapsuleShapeTest.h
 	${SAMPLES_ROOT}/Tests/Shapes/TriangleShapeTest.cpp
 	${SAMPLES_ROOT}/Tests/Shapes/TriangleShapeTest.h
+	${SAMPLES_ROOT}/Tests/Vehicle/MotorcycleTest.cpp
+	${SAMPLES_ROOT}/Tests/Vehicle/MotorcycleTest.h
 	${SAMPLES_ROOT}/Tests/Vehicle/TankTest.cpp
 	${SAMPLES_ROOT}/Tests/Vehicle/TankTest.h
 	${SAMPLES_ROOT}/Tests/Vehicle/VehicleConstraintTest.cpp
@@ -205,14 +243,17 @@ set(SAMPLES_SRC_FILES
 	${SAMPLES_ROOT}/Tests/Water/WaterShapeTest.h
 	${SAMPLES_ROOT}/Utils/ContactListenerImpl.cpp
 	${SAMPLES_ROOT}/Utils/ContactListenerImpl.h
+	${SAMPLES_ROOT}/Utils/DebugRendererSP.h
 	${SAMPLES_ROOT}/Utils/RagdollLoader.cpp
 	${SAMPLES_ROOT}/Utils/RagdollLoader.h
 	${SAMPLES_ROOT}/Utils/ShapeCreator.cpp
 	${SAMPLES_ROOT}/Utils/ShapeCreator.h
+	${SAMPLES_ROOT}/Utils/SoftBodyCreator.cpp
+	${SAMPLES_ROOT}/Utils/SoftBodyCreator.h
 )
 
 # Group source files
-source_group(TREE ${SAMPLES_ROOT} FILES ${SAMPLES_SRC_FILES})	
+source_group(TREE ${SAMPLES_ROOT} FILES ${SAMPLES_SRC_FILES})
 
 # Create Samples executable
 add_executable(Samples  ${SAMPLES_SRC_FILES})

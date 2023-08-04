@@ -1,3 +1,4 @@
+// Jolt Physics Library (https://github.com/jrouwe/JoltPhysics)
 // SPDX-FileCopyrightText: 2021 Jorrit Rouwe
 // SPDX-License-Identifier: MIT
 
@@ -26,7 +27,7 @@ TEST_SUITE("StepListenerTest")
 	// Perform the actual listener test with a variable amount of collision steps
 	static void DoTest(int inCollisionSteps)
 	{
-		PhysicsTestContext c(1.0f / 60.0f, inCollisionSteps, 1);
+		PhysicsTestContext c(1.0f / 60.0f, inCollisionSteps);
 
 		// Initialize and add listeners
 		TestStepListener listeners[10];
@@ -43,7 +44,7 @@ TEST_SUITE("StepListenerTest")
 			CHECK(l.mCount == 0);
 
 		// Now add an active body
-		c.CreateBox(Vec3::sZero(), Quat::sIdentity(), EMotionType::Dynamic, EMotionQuality::Discrete, Layers::MOVING, Vec3::sReplicate(1.0f));
+		c.CreateBox(RVec3::sZero(), Quat::sIdentity(), EMotionType::Dynamic, EMotionQuality::Discrete, Layers::MOVING, Vec3::sReplicate(1.0f));
 
 		// Step the simulation
 		c.SimulateSingleStep();

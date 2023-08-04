@@ -1,3 +1,4 @@
+// Jolt Physics Library (https://github.com/jrouwe/JoltPhysics)
 // SPDX-FileCopyrightText: 2021 Jorrit Rouwe
 // SPDX-License-Identifier: MIT
 
@@ -30,14 +31,14 @@ void PoweredSwingTwistConstraintTest::Initialize()
 	Quat body1_rotation = Quat::sEulerAngles(sBodyRotation[0]);
 	Quat body2_rotation = Quat::sEulerAngles(sBodyRotation[1]) * body1_rotation;
 
-	Vec3 body1_position(0, 20, 0);
+	RVec3 body1_position(0, 20, 0);
 	Body &body1 = *mBodyInterface->CreateBody(BodyCreationSettings(box, body1_position, body1_rotation, EMotionType::Static, Layers::NON_MOVING));
 	body1.SetCollisionGroup(CollisionGroup(group_filter, 0, 0));
 	mBodyInterface->AddBody(body1.GetID(), EActivation::DontActivate);
 
-	Vec3 constraint_position = body1_position + body1_rotation * Vec3(0, -half_box_height, 0);
+	RVec3 constraint_position = body1_position + body1_rotation * Vec3(0, -half_box_height, 0);
 
-	Vec3 body2_position = constraint_position + body2_rotation * Vec3(0, -half_box_height, 0);
+	RVec3 body2_position = constraint_position + body2_rotation * Vec3(0, -half_box_height, 0);
 	Body &body2 = *mBodyInterface->CreateBody(BodyCreationSettings(box, body2_position, body2_rotation, EMotionType::Dynamic, Layers::MOVING));
 	body2.SetCollisionGroup(CollisionGroup(group_filter, 0, 0));
 	body2.GetMotionProperties()->SetLinearDamping(0.0f);
@@ -80,18 +81,18 @@ void PoweredSwingTwistConstraintTest::PrePhysicsUpdate(const PreUpdateParams &in
 
 	MotorSettings &swing = mConstraint->GetSwingMotorSettings();
 	swing.SetTorqueLimit(mInertiaBody2AsSeenFromConstraint * sMaxAngularAcceleration);
-	swing.mFrequency = sFrequency;
-	swing.mDamping = sDamping;
+	swing.mSpringSettings.mFrequency = sFrequency;
+	swing.mSpringSettings.mDamping = sDamping;
 
 	MotorSettings &twist = mConstraint->GetTwistMotorSettings();
 	twist.SetTorqueLimit(mInertiaBody2AsSeenFromConstraint * sMaxAngularAcceleration);
-	twist.mFrequency = sFrequency;
-	twist.mDamping = sDamping;
+	twist.mSpringSettings.mFrequency = sFrequency;
+	twist.mSpringSettings.mDamping = sDamping;
 }
 
 void PoweredSwingTwistConstraintTest::GetInitialCamera(CameraState &ioState) const 
 {
-	ioState.mPos = Vec3(4, 25, 4);
+	ioState.mPos = RVec3(4, 25, 4);
 	ioState.mForward = Vec3(-1, -1, -1).Normalized();
 }
 

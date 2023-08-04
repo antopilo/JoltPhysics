@@ -1,3 +1,4 @@
+// Jolt Physics Library (https://github.com/jrouwe/JoltPhysics)
 // SPDX-FileCopyrightText: 2021 Jorrit Rouwe
 // SPDX-License-Identifier: MIT
 
@@ -12,10 +13,9 @@
 
 JPH_NAMESPACE_BEGIN
 
-CastConvexVsTriangles::CastConvexVsTriangles(const ShapeCast &inShapeCast, const ShapeCastSettings &inShapeCastSettings, const Vec3 &inScale, const ShapeFilter &inShapeFilter, const Mat44 &inCenterOfMassTransform2, const SubShapeIDCreator &inSubShapeIDCreator1, CastShapeCollector &ioCollector) :
+CastConvexVsTriangles::CastConvexVsTriangles(const ShapeCast &inShapeCast, const ShapeCastSettings &inShapeCastSettings, Vec3Arg inScale, Mat44Arg inCenterOfMassTransform2, const SubShapeIDCreator &inSubShapeIDCreator1, CastShapeCollector &ioCollector) :
 	mShapeCast(inShapeCast),
 	mShapeCastSettings(inShapeCastSettings),
-	mShapeFilter(inShapeFilter), 
 	mCenterOfMassTransform2(inCenterOfMassTransform2),
 	mScale(inScale),
 	mSubShapeIDCreator1(inSubShapeIDCreator1),
@@ -42,10 +42,6 @@ void CastConvexVsTriangles::Cast(Vec3Arg inV0, Vec3Arg inV1, Vec3Arg inV2, uint8
 	// Backface check
 	bool back_facing = triangle_normal.Dot(mShapeCast.mDirection) > 0.0f;
 	if (mShapeCastSettings.mBackFaceModeTriangles == EBackFaceMode::IgnoreBackFaces && back_facing)
-		return;
-
-	// Test the shape filter if this shape should collide
-	if (!mShapeFilter.ShouldCollide(mSubShapeIDCreator1.GetID(), inSubShapeID2))
 		return;
 
 	// Create triangle support function
@@ -85,18 +81,17 @@ void CastConvexVsTriangles::Cast(Vec3Arg inV0, Vec3Arg inV1, Vec3Arg inV2, uint8
 		// Its a hit, store the sub shape id's
 		ShapeCastResult result(fraction, contact_point_a, contact_point_b, contact_normal_world, back_facing, mSubShapeIDCreator1.GetID(), inSubShapeID2, TransformedShape::sGetBodyID(mCollector.GetContext()));
 
+		// Early out if this hit is deeper than the collector's early out value
+		if (fraction == 0.0f && -result.mPenetrationDepth >= mCollector.GetEarlyOutFraction())
+			return;
+
 		// Gather faces
 		if (mShapeCastSettings.mCollectFacesMode == ECollectFacesMode::CollectFaces)
 		{
 			// Get supporting face of shape 1
 			Mat44 transform_1_to_2 = mShapeCast.mCenterOfMassStart;
 			transform_1_to_2.SetTranslation(transform_1_to_2.GetTranslation() + fraction * mShapeCast.mDirection);
-			static_cast<const ConvexShape *>(mShapeCast.mShape)->GetSupportingFace(transform_1_to_2.Multiply3x3Transposed(-contact_normal), mShapeCast.mScale, result.mShape1Face);
-
-			// Convert to world space
-			Mat44 transform_1_to_world = mCenterOfMassTransform2 * transform_1_to_2;
-			for (Vec3 &p : result.mShape1Face)
-				p = transform_1_to_world * p;
+			static_cast<const ConvexShape *>(mShapeCast.mShape)->GetSupportingFace(SubShapeID(), transform_1_to_2.Multiply3x3Transposed(-contact_normal), mShapeCast.mScale, mCenterOfMassTransform2 * transform_1_to_2, result.mShape1Face);
 
 			// Get face of the triangle
 			triangle.GetSupportingFace(contact_normal, result.mShape2Face);

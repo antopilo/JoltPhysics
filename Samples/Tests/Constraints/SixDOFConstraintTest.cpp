@@ -1,3 +1,4 @@
+// Jolt Physics Library (https://github.com/jrouwe/JoltPhysics)
 // SPDX-FileCopyrightText: 2021 Jorrit Rouwe
 // SPDX-License-Identifier: MIT
 
@@ -53,7 +54,7 @@ void SixDOFConstraintTest::Initialize()
 
 	// Create box
 	float half_box_height = 1.5f;
-	Vec3 position(0, 25, 0);
+	RVec3 position(0, 25, 0);
 	RefConst<BoxShape> box = new BoxShape(Vec3(0.5f, half_box_height, 0.25f));
 
 	// Create static body
@@ -82,7 +83,7 @@ void SixDOFConstraintTest::Initialize()
 
 void SixDOFConstraintTest::GetInitialCamera(CameraState &ioState) const 
 {
-	ioState.mPos = Vec3(4, 30, 4);
+	ioState.mPos = RVec3(4, 30, 4);
 	ioState.mForward = Vec3(-1, -1, -1).Normalized();
 }
 
@@ -99,6 +100,8 @@ void SixDOFConstraintTest::CreateSettingsMenu(DebugUI *inUI, UIElement *inSubMen
 			inUI->CreateCheckBox(configuration_settings, "Enable Limits " + labels[i], sEnableLimits[i], [=](UICheckBox::EState inState) { sEnableLimits[i] = inState == UICheckBox::STATE_CHECKED; });
 			inUI->CreateSlider(configuration_settings, "Limit Min", sLimitMin[i], -10.0f, 0.0f, 0.1f, [=](float inValue) { sLimitMin[i] = inValue; });
 			inUI->CreateSlider(configuration_settings, "Limit Max", sLimitMax[i], 0.0f, 10.0f, 0.1f, [=](float inValue) { sLimitMax[i] = inValue; });
+			inUI->CreateSlider(configuration_settings, "Limit Frequency (Hz)", sSettings->mLimitsSpringSettings[i].mFrequency, 0.0f, 20.0f, 0.1f, [=](float inValue) { sSettings->mLimitsSpringSettings[i].mFrequency = inValue; });
+			inUI->CreateSlider(configuration_settings, "Limit Damping", sSettings->mLimitsSpringSettings[i].mDamping, 0.0f, 2.0f, 0.01f, [=](float inValue) { sSettings->mLimitsSpringSettings[i].mDamping = inValue; });
 		}
 
 		for (int i = 3; i < 6; ++i)

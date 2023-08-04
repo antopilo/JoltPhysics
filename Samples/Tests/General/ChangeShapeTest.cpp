@@ -1,3 +1,4 @@
+// Jolt Physics Library (https://github.com/jrouwe/JoltPhysics)
 // SPDX-FileCopyrightText: 2021 Jorrit Rouwe
 // SPDX-License-Identifier: MIT
 
@@ -39,7 +40,7 @@ void ChangeShapeTest::Initialize()
 	// Create dynamic body that changes shape
 	BodyCreationSettings settings;
 	settings.SetShape(mShapes[mShapeIdx]);
-	settings.mPosition = Vec3(0, 10, 0);
+	settings.mPosition = RVec3(0, 10, 0);
 	settings.mMotionType = EMotionType::Dynamic; 
 	settings.mObjectLayer = Layers::MOVING;
 	mBodyID = mBodyInterface->CreateBody(settings)->GetID();

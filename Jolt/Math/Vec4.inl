@@ -1,3 +1,4 @@
+// Jolt Physics Library (https://github.com/jrouwe/JoltPhysics)
 // SPDX-FileCopyrightText: 2021 Jorrit Rouwe
 // SPDX-License-Identifier: MIT
 
@@ -53,7 +54,7 @@ Vec4 Vec4::Swizzle() const
 #if defined(JPH_USE_SSE)
 	return _mm_shuffle_ps(mValue, mValue, _MM_SHUFFLE(SwizzleW, SwizzleZ, SwizzleY, SwizzleX));
 #elif defined(JPH_USE_NEON)
-	return __builtin_shufflevector(mValue, mValue, SwizzleX, SwizzleY, SwizzleZ, SwizzleW);
+	return JPH_NEON_SHUFFLE_F32x4(mValue, mValue, SwizzleX, SwizzleY, SwizzleZ, SwizzleW);
 #else
 	return Vec4(mF32[SwizzleX], mF32[SwizzleY], mF32[SwizzleZ], mF32[SwizzleW]);
 #endif
@@ -362,7 +363,9 @@ bool Vec4::IsNormalized(float inTolerance) const
 
 bool Vec4::IsNaN() const
 {
-#if defined(JPH_USE_SSE)
+#if defined(JPH_USE_AVX512)
+	return _mm_fpclass_ps_mask(mValue, 0b10000001) != 0;
+#elif defined(JPH_USE_SSE)
 	return _mm_movemask_ps(_mm_cmpunord_ps(mValue, mValue)) != 0;
 #elif defined(JPH_USE_NEON)
 	uint32x4_t is_equal = vceqq_f32(mValue, mValue); // If a number is not equal to itself it's a NaN
@@ -611,10 +614,8 @@ Vec4 Vec4::DotV(Vec4Arg inV2) const
     float32x4_t mul = vmulq_f32(mValue, inV2.mValue);
     return vdupq_n_f32(vaddvq_f32(mul));
 #else
-	float dot = 0.0f;
-	for (int i = 0; i < 4; i++)
-		dot += mF32[i] * inV2.mF32[i];
-	return Vec4::sReplicate(dot);
+	// Brackets placed so that the order is consistent with the vectorized version
+	return Vec4::sReplicate((mF32[0] * inV2.mF32[0] + mF32[1] * inV2.mF32[1]) + (mF32[2] * inV2.mF32[2] + mF32[3] * inV2.mF32[3]));
 #endif
 }
 
@@ -626,10 +627,8 @@ float Vec4::Dot(Vec4Arg inV2) const
     float32x4_t mul = vmulq_f32(mValue, inV2.mValue);
     return vaddvq_f32(mul);
 #else
-	float dot = 0.0f;
-	for (int i = 0; i < 4; i++)
-		dot += mF32[i] * inV2.mF32[i];
-	return dot;
+	// Brackets placed so that the order is consistent with the vectorized version
+	return (mF32[0] * inV2.mF32[0] + mF32[1] * inV2.mF32[1]) + (mF32[2] * inV2.mF32[2] + mF32[3] * inV2.mF32[3]);
 #endif
 }
 
@@ -641,10 +640,8 @@ float Vec4::LengthSq() const
     float32x4_t mul = vmulq_f32(mValue, mValue);
     return vaddvq_f32(mul);
 #else
-	float len_sq = 0.0f;
-	for (int i = 0; i < 4; i++)
-		len_sq += mF32[i] * mF32[i];
-	return len_sq;
+	// Brackets placed so that the order is consistent with the vectorized version
+	return (mF32[0] * mF32[0] + mF32[1] * mF32[1]) + (mF32[2] * mF32[2] + mF32[3] * mF32[3]);
 #endif
 }
 
@@ -657,7 +654,8 @@ float Vec4::Length() const
     float32x2_t sum = vdup_n_f32(vaddvq_f32(mul));
     return vget_lane_f32(vsqrt_f32(sum), 0);
 #else
-	return sqrt(LengthSq());
+	// Brackets placed so that the order is consistent with the vectorized version
+	return sqrt((mF32[0] * mF32[0] + mF32[1] * mF32[1]) + (mF32[2] * mF32[2] + mF32[3] * mF32[3]));
 #endif
 }
 
@@ -745,7 +743,7 @@ int Vec4::GetSignBits() const
 #if defined(JPH_USE_SSE)
 	return _mm_movemask_ps(mValue);
 #elif defined(JPH_USE_NEON)
-    int32x4_t shift = { 0, 1, 2, 3 };
+    int32x4_t shift = JPH_NEON_INT32x4(0, 1, 2, 3);
     return vaddvq_u32(vshlq_u32(vshrq_n_u32(vreinterpretq_u32_f32(mValue), 31), shift));
 #else
 	return (signbit(mF32[0])? 1 : 0) | (signbit(mF32[1])? 2 : 0) | (signbit(mF32[2])? 4 : 0) | (signbit(mF32[3])? 8 : 0);

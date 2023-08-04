@@ -1,3 +1,4 @@
+// Jolt Physics Library (https://github.com/jrouwe/JoltPhysics)
 // SPDX-FileCopyrightText: 2021 Jorrit Rouwe
 // SPDX-License-Identifier: MIT
 
@@ -127,6 +128,9 @@ TEST_SUITE("UVec4Tests")
 		CHECK(UVec4::sOr(v1, v2) == UVec4(0b0111, 0b01110, 0b011100, 0b0111000));
 		CHECK(UVec4::sXor(v1, v2) == UVec4(0b0110, 0b01100, 0b011000, 0b0110000));
 		CHECK(UVec4::sAnd(v1, v2) == UVec4(0b0001, 0b00010, 0b000100, 0b0001000));
+
+		CHECK(UVec4::sNot(v1) == UVec4(0xfffffffcU, 0xfffffff9U, 0xfffffff3U, 0xffffffe7U));
+		CHECK(UVec4::sNot(v2) == UVec4(0xfffffffaU, 0xfffffff5U, 0xffffffebU, 0xffffffd7U));
 
 		CHECK(UVec4(0x80000000U, 0x40000000U, 0x20000000U, 0x10000000U).LogicalShiftRight<1>() == UVec4(0x40000000U, 0x20000000U, 0x10000000U, 0x08000000U));
 		CHECK(UVec4(0x80000000U, 0x40000000U, 0x20000000U, 0x10000000U).ArithmeticShiftRight<1>() == UVec4(0xC0000000U, 0x20000000U, 0x10000000U, 0x08000000U));

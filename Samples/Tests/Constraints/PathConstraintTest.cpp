@@ -1,3 +1,4 @@
+// Jolt Physics Library (https://github.com/jrouwe/JoltPhysics)
 // SPDX-FileCopyrightText: 2021 Jorrit Rouwe
 // SPDX-License-Identifier: MIT
 
@@ -38,11 +39,11 @@ void PathConstraintTest::Initialize()
 		mPaths[0] = path;
 
 		// Dynamic base plate to which the path attaches
-		Body &body1 = *mBodyInterface->CreateBody(BodyCreationSettings(new BoxShape(Vec3(5, 0.5f, 5)), Vec3(-10, 1, 0), Quat::sIdentity(), EMotionType::Dynamic, Layers::MOVING));
+		Body &body1 = *mBodyInterface->CreateBody(BodyCreationSettings(new BoxShape(Vec3(5, 0.5f, 5)), RVec3(-10, 1, 0), Quat::sIdentity(), EMotionType::Dynamic, Layers::MOVING));
 		mBodyInterface->AddBody(body1.GetID(), EActivation::Activate);
 
 		// Dynamic body attached to the path
-		Body &body2 = *mBodyInterface->CreateBody(BodyCreationSettings(new BoxShape(Vec3(0.5f, 1.0f, 2.0f)), Vec3(-5, 15, 0), Quat::sIdentity(), EMotionType::Dynamic, Layers::MOVING));
+		Body &body2 = *mBodyInterface->CreateBody(BodyCreationSettings(new BoxShape(Vec3(0.5f, 1.0f, 2.0f)), RVec3(-5, 15, 0), Quat::sIdentity(), EMotionType::Dynamic, Layers::MOVING));
 		body2.SetAllowSleeping(false);
 		mBodyInterface->AddBody(body2.GetID(), EActivation::Activate);
 
@@ -74,11 +75,11 @@ void PathConstraintTest::Initialize()
 		mPaths[1] = path;
 
 		// Dynamic base plate to which the path attaches
-		Body &body1 = *mBodyInterface->CreateBody(BodyCreationSettings(new BoxShape(Vec3(5, 0.5f, 5)), Vec3(10, 1, 0), Quat::sIdentity(), EMotionType::Dynamic, Layers::MOVING));
+		Body &body1 = *mBodyInterface->CreateBody(BodyCreationSettings(new BoxShape(Vec3(5, 0.5f, 5)), RVec3(10, 1, 0), Quat::sIdentity(), EMotionType::Dynamic, Layers::MOVING));
 		mBodyInterface->AddBody(body1.GetID(), EActivation::Activate);
 
 		// Dynamic body attached to the path
-		Body &body2 = *mBodyInterface->CreateBody(BodyCreationSettings(new BoxShape(Vec3(0.5f, 1.0f, 2.0f)), Vec3(15, 5, 0), Quat::sIdentity(), EMotionType::Dynamic, Layers::MOVING));
+		Body &body2 = *mBodyInterface->CreateBody(BodyCreationSettings(new BoxShape(Vec3(0.5f, 1.0f, 2.0f)), RVec3(15, 5, 0), Quat::sIdentity(), EMotionType::Dynamic, Layers::MOVING));
 		body2.SetAllowSleeping(false);
 		mBodyInterface->AddBody(body2.GetID(), EActivation::Activate);
 
@@ -100,8 +101,8 @@ void PathConstraintTest::PrePhysicsUpdate(const PreUpdateParams &inParams)
 	{
 		MotorSettings &motor_settings = c->GetPositionMotorSettings();
 		motor_settings.SetForceLimit(sMaxMotorAcceleration / c->GetBody2()->GetMotionProperties()->GetInverseMass()); // F = m * a
-		motor_settings.mFrequency = sFrequency;
-		motor_settings.mDamping = sDamping;
+		motor_settings.mSpringSettings.mFrequency = sFrequency;
+		motor_settings.mSpringSettings.mDamping = sDamping;
 		c->SetMaxFrictionForce(sMaxFrictionAcceleration / c->GetBody2()->GetMotionProperties()->GetInverseMass());
 	}
 }

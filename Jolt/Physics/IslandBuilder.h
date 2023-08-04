@@ -1,3 +1,4 @@
+// Jolt Physics Library (https://github.com/jrouwe/JoltPhysics)
 // SPDX-FileCopyrightText: 2021 Jorrit Rouwe
 // SPDX-License-Identifier: MIT
 
@@ -5,10 +6,7 @@
 
 #include <Jolt/Physics/Body/BodyID.h>
 #include <Jolt/Core/NonCopyable.h>
-
-JPH_SUPPRESS_WARNINGS_STD_BEGIN
-#include <atomic>
-JPH_SUPPRESS_WARNINGS_STD_END
+#include <Jolt/Core/Atomics.h>
 
 JPH_NAMESPACE_BEGIN
 
