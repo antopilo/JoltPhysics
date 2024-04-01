@@ -59,12 +59,12 @@ static const std::vector<Vec3> sUnitCylinderTriangles = []() {
 		Vec3 b2 = cTopFace[(i + 1) % num_verts] + bottom_offset;
 
 		// Top
-		verts.push_back(Vec3(0.0f, 1.0f, 0.0f));
+		verts.emplace_back(0.0f, 1.0f, 0.0f);
 		verts.push_back(t1);
 		verts.push_back(t2);
 
 		// Bottom
-		verts.push_back(Vec3(0.0f, -1.0f, 0.0f));
+		verts.emplace_back(0.0f, -1.0f, 0.0f);
 		verts.push_back(b2);
 		verts.push_back(b1);
 
@@ -177,6 +177,7 @@ const ConvexShape::Support *CylinderShape::GetSupportFunction(ESupportMode inMod
 	switch (inMode)
 	{
 	case ESupportMode::IncludeConvexRadius:
+	case ESupportMode::Default:
 		return new (&inBuffer) Cylinder(scaled_half_height, scaled_radius, 0.0f);
 
 	case ESupportMode::ExcludeConvexRadius:
@@ -300,54 +301,61 @@ void CylinderShape::CollidePoint(Vec3Arg inPoint, const SubShapeIDCreator &inSub
 		ioCollector.AddHit({ TransformedShape::sGetBodyID(ioCollector.GetContext()), inSubShapeIDCreator.GetID() });
 }
 
-void CylinderShape::CollideSoftBodyVertices(Mat44Arg inCenterOfMassTransform, Array<SoftBodyVertex> &ioVertices, [[maybe_unused]] float inDeltaTime, [[maybe_unused]] Vec3Arg inDisplacementDueToGravity, int inCollidingShapeIndex) const
+void CylinderShape::CollideSoftBodyVertices(Mat44Arg inCenterOfMassTransform, Vec3Arg inScale, SoftBodyVertex *ioVertices, uint inNumVertices, [[maybe_unused]] float inDeltaTime, [[maybe_unused]] Vec3Arg inDisplacementDueToGravity, int inCollidingShapeIndex) const
 {
+	JPH_ASSERT(IsValidScale(inScale));
+
 	Mat44 inverse_transform = inCenterOfMassTransform.InversedRotationTranslation();
 
-	for (SoftBodyVertex &v : ioVertices)
-		if (v.mInvMass > 0.0f)
+	// Get scaled cylinder
+	Vec3 abs_scale = inScale.Abs();
+	float half_height = abs_scale.GetY() * mHalfHeight;
+	float radius = abs_scale.GetX() * mRadius;
+
+	for (SoftBodyVertex *v = ioVertices, *sbv_end = ioVertices + inNumVertices; v < sbv_end; ++v)
+		if (v->mInvMass > 0.0f)
 		{
-			Vec3 local_pos = inverse_transform * v.mPosition;
+			Vec3 local_pos = inverse_transform * v->mPosition;
 
 			// Calculate penetration into side surface
 			Vec3 side_normal = local_pos;
 			side_normal.SetY(0.0f);
 			float side_normal_length = side_normal.Length();
-			float side_penetration = mRadius - side_normal_length;
+			float side_penetration = radius - side_normal_length;
 
 			// Calculate penetration into top or bottom plane
-			float top_penetration = mHalfHeight - abs(local_pos.GetY());
+			float top_penetration = half_height - abs(local_pos.GetY());
 
 			Vec3 point, normal;
 			if (side_penetration < 0.0f && top_penetration < 0.0f)
 			{
 				// We're outside the cylinder height and radius
-				point = side_normal * (mRadius / side_normal_length) + Vec3(0, mHalfHeight * Sign(local_pos.GetY()), 0);
-				normal = point.Normalized();
+				point = side_normal * (radius / side_normal_length) + Vec3(0, half_height * Sign(local_pos.GetY()), 0);
+				normal = (local_pos - point).NormalizedOr(Vec3::sAxisY());
 			}
 			else if (side_penetration < top_penetration)
 			{
 				// Side surface is closest
 				normal = side_normal_length > 0.0f? side_normal / side_normal_length : Vec3::sAxisX();
-				point = mRadius * normal;
+				point = radius * normal;
 			}
 			else
 			{
 				// Top or bottom plane is closest
 				normal = Vec3(0, Sign(local_pos.GetY()), 0);
-				point = mHalfHeight * normal;
+				point = half_height * normal;
 			}
 
 			// Calculate penetration
 			Plane plane = Plane::sFromPointAndNormal(point, normal);
 			float penetration = -plane.SignedDistance(local_pos);
-			if (penetration > v.mLargestPenetration)
+			if (penetration > v->mLargestPenetration)
 			{
-				v.mLargestPenetration = penetration;
+				v->mLargestPenetration = penetration;
 
 				// Store collision
-				v.mCollisionPlane = plane.GetTransformed(inCenterOfMassTransform);
-				v.mCollidingShapeIndex = inCollidingShapeIndex;
+				v->mCollisionPlane = plane.GetTransformed(inCenterOfMassTransform);
+				v->mCollidingShapeIndex = inCollidingShapeIndex;
 			}
 		}
 }
@@ -356,7 +364,7 @@ void CylinderShape::TransformShape(Mat44Arg inCenterOfMassTransform, Transformed
 {
 	Vec3 scale;
 	Mat44 transform = inCenterOfMassTransform.Decompose(scale);
-	TransformedShape ts(RVec3(transform.GetTranslation()), transform.GetRotation().GetQuaternion(), this, BodyID(), SubShapeIDCreator());
+	TransformedShape ts(RVec3(transform.GetTranslation()), transform.GetQuaternion(), this, BodyID(), SubShapeIDCreator());
 	Vec3 abs_scale = scale.Abs();
 	float xz = 0.5f * (abs_scale.GetX() + abs_scale.GetZ());
 	ts.SetShapeScale(Vec3(xz, abs_scale.GetY(), xz));

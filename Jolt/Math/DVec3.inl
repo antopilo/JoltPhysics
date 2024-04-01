@@ -42,7 +42,7 @@ DVec3::DVec3(double inX, double inY, double inZ)
 	mValue = _mm256_set_pd(inZ, inZ, inY, inX); // Assure Z and W are the same
 #elif defined(JPH_USE_SSE)
 	mValue.mLow = _mm_set_pd(inY, inX);
-	mValue.mHigh = _mm_set_pd1(inZ);
+	mValue.mHigh = _mm_set1_pd(inZ);
 #elif defined(JPH_USE_NEON)
 	mValue.val[0] = vcombine_f64(vcreate_f64(*reinterpret_cast<uint64 *>(&inX)), vcreate_f64(*reinterpret_cast<uint64 *>(&inY)));
 	mValue.val[1] = vdupq_n_f64(inZ);
@@ -65,8 +65,8 @@ DVec3::DVec3(const Double3 &inV)
 	Type xy = _mm256_unpacklo_pd(x, y);
 	mValue = _mm256_blend_pd(xy, z, 0b1100); // Assure Z and W are the same
 #elif defined(JPH_USE_SSE)
-	mValue.mLow = _mm_load_pd(&inV.x);
-	mValue.mHigh = _mm_set_pd1(inV.z);
+	mValue.mLow = _mm_loadu_pd(&inV.x);
+	mValue.mHigh = _mm_set1_pd(inV.z);
 #elif defined(JPH_USE_NEON)
 	mValue.val[0] = vld1q_f64(&inV.x);
 	mValue.val[1] = vdupq_n_f64(inV.z);
@@ -84,10 +84,10 @@ void DVec3::CheckW() const
 {
 #ifdef JPH_FLOATING_POINT_EXCEPTIONS_ENABLED
 	// Avoid asserts when both components are NaN
-	JPH_ASSERT(reinterpret_cast<const uint64 *>(mF64)[2] == reinterpret_cast<const uint64 *>(mF64)[3]); 
+	JPH_ASSERT(reinterpret_cast<const uint64 *>(mF64)[2] == reinterpret_cast<const uint64 *>(mF64)[3]);
 #endif // JPH_FLOATING_POINT_EXCEPTIONS_ENABLED
-} 
-	
+}
+
 /// Internal helper function that ensures that the Z component is replicated to the W component to prevent divisions by zero
 DVec3::Type DVec3::sFixW(TypeArg inValue)
 {
@@ -199,8 +199,8 @@ DVec3 DVec3::sMin(DVec3Arg inV1, DVec3Arg inV2)
 #elif defined(JPH_USE_NEON)
 	return DVec3({ vminq_f64(inV1.mValue.val[0], inV2.mValue.val[0]), vminq_f64(inV1.mValue.val[1], inV2.mValue.val[1]) });
 #else
-	return DVec3(min(inV1.mF64[0], inV2.mF64[0]), 
-				 min(inV1.mF64[1], inV2.mF64[1]), 
+	return DVec3(min(inV1.mF64[0], inV2.mF64[0]),
+				 min(inV1.mF64[1], inV2.mF64[1]),
 				 min(inV1.mF64[2], inV2.mF64[2]));
 #endif
 }
@@ -214,8 +214,8 @@ DVec3 DVec3::sMax(DVec3Arg inV1, DVec3Arg inV2)
 #elif defined(JPH_USE_NEON)
 	return DVec3({ vmaxq_f64(inV1.mValue.val[0], inV2.mValue.val[0]), vmaxq_f64(inV1.mValue.val[1], inV2.mValue.val[1]) });
 #else
-	return DVec3(max(inV1.mF64[0], inV2.mF64[0]), 
-				 max(inV1.mF64[1], inV2.mF64[1]), 
+	return DVec3(max(inV1.mF64[0], inV2.mF64[0]),
+				 max(inV1.mF64[1], inV2.mF64[1]),
 				 max(inV1.mF64[2], inV2.mF64[2]));
 #endif
 }
@@ -234,8 +234,8 @@ DVec3 DVec3::sEquals(DVec3Arg inV1, DVec3Arg inV2)
 #elif defined(JPH_USE_NEON)
 	return DVec3({ vreinterpretq_u64_f64(vceqq_f64(inV1.mValue.val[0], inV2.mValue.val[0])), vreinterpretq_u64_f64(vceqq_f64(inV1.mValue.val[1], inV2.mValue.val[1])) });
 #else
-	return DVec3(inV1.mF64[0] == inV2.mF64[0]? cTrue : cFalse, 
-				 inV1.mF64[1] == inV2.mF64[1]? cTrue : cFalse, 
+	return DVec3(inV1.mF64[0] == inV2.mF64[0]? cTrue : cFalse,
+				 inV1.mF64[1] == inV2.mF64[1]? cTrue : cFalse,
 				 inV1.mF64[2] == inV2.mF64[2]? cTrue : cFalse);
 #endif
 }
@@ -249,8 +249,8 @@ DVec3 DVec3::sLess(DVec3Arg inV1, DVec3Arg inV2)
 #elif defined(JPH_USE_NEON)
 	return DVec3({ vreinterpretq_u64_f64(vcltq_f64(inV1.mValue.val[0], inV2.mValue.val[0])), vreinterpretq_u64_f64(vcltq_f64(inV1.mValue.val[1], inV2.mValue.val[1])) });
 #else
-	return DVec3(inV1.mF64[0] < inV2.mF64[0]? cTrue : cFalse, 
-				 inV1.mF64[1] < inV2.mF64[1]? cTrue : cFalse, 
+	return DVec3(inV1.mF64[0] < inV2.mF64[0]? cTrue : cFalse,
+				 inV1.mF64[1] < inV2.mF64[1]? cTrue : cFalse,
 				 inV1.mF64[2] < inV2.mF64[2]? cTrue : cFalse);
 #endif
 }
@@ -264,8 +264,8 @@ DVec3 DVec3::sLessOrEqual(DVec3Arg inV1, DVec3Arg inV2)
 #elif defined(JPH_USE_NEON)
 	return DVec3({ vreinterpretq_u64_f64(vcleq_f64(inV1.mValue.val[0], inV2.mValue.val[0])), vreinterpretq_u64_f64(vcleq_f64(inV1.mValue.val[1], inV2.mValue.val[1])) });
 #else
-	return DVec3(inV1.mF64[0] <= inV2.mF64[0]? cTrue : cFalse, 
-				 inV1.mF64[1] <= inV2.mF64[1]? cTrue : cFalse, 
+	return DVec3(inV1.mF64[0] <= inV2.mF64[0]? cTrue : cFalse,
+				 inV1.mF64[1] <= inV2.mF64[1]? cTrue : cFalse,
 				 inV1.mF64[2] <= inV2.mF64[2]? cTrue : cFalse);
 #endif
 }
@@ -279,8 +279,8 @@ DVec3 DVec3::sGreater(DVec3Arg inV1, DVec3Arg inV2)
 #elif defined(JPH_USE_NEON)
 	return DVec3({ vreinterpretq_u64_f64(vcgtq_f64(inV1.mValue.val[0], inV2.mValue.val[0])), vreinterpretq_u64_f64(vcgtq_f64(inV1.mValue.val[1], inV2.mValue.val[1])) });
 #else
-	return DVec3(inV1.mF64[0] > inV2.mF64[0]? cTrue : cFalse, 
-				 inV1.mF64[1] > inV2.mF64[1]? cTrue : cFalse, 
+	return DVec3(inV1.mF64[0] > inV2.mF64[0]? cTrue : cFalse,
+				 inV1.mF64[1] > inV2.mF64[1]? cTrue : cFalse,
 				 inV1.mF64[2] > inV2.mF64[2]? cTrue : cFalse);
 #endif
 }
@@ -294,8 +294,8 @@ DVec3 DVec3::sGreaterOrEqual(DVec3Arg inV1, DVec3Arg inV2)
 #elif defined(JPH_USE_NEON)
 	return DVec3({ vreinterpretq_u64_f64(vcgeq_f64(inV1.mValue.val[0], inV2.mValue.val[0])), vreinterpretq_u64_f64(vcgeq_f64(inV1.mValue.val[1], inV2.mValue.val[1])) });
 #else
-	return DVec3(inV1.mF64[0] >= inV2.mF64[0]? cTrue : cFalse, 
-				 inV1.mF64[1] >= inV2.mF64[1]? cTrue : cFalse, 
+	return DVec3(inV1.mF64[0] >= inV2.mF64[0]? cTrue : cFalse,
+				 inV1.mF64[1] >= inV2.mF64[1]? cTrue : cFalse,
 				 inV1.mF64[2] >= inV2.mF64[2]? cTrue : cFalse);
 #endif
 }
@@ -402,8 +402,8 @@ bool DVec3::TestAllTrue() const
 	return GetTrues() == 0x7;
 }
 
-bool DVec3::operator == (DVec3Arg inV2) const 
-{ 
+bool DVec3::operator == (DVec3Arg inV2) const
+{
 	return sEquals(*this, inV2).TestAllTrue();
 }
 
@@ -790,9 +790,9 @@ DVec3 DVec3::Normalized() const
 	return *this / Length();
 }
 
-bool DVec3::IsNormalized(double inTolerance) const 
-{ 
-	return abs(LengthSq() - 1.0) <= inTolerance; 
+bool DVec3::IsNormalized(double inTolerance) const
+{
+	return abs(LengthSq() - 1.0) <= inTolerance;
 }
 
 bool DVec3::IsNaN() const
@@ -825,8 +825,8 @@ DVec3 DVec3::GetSign() const
 	float64x2_t one = vdupq_n_f64(1.0f);
 	return DVec3({ vorrq_s64(vandq_s64(mValue.val[0], minus_one), one), vorrq_s64(vandq_s64(mValue.val[1], minus_one), one) });
 #else
-	return DVec3(std::signbit(mF64[0])? -1.0 : 1.0, 
-				 std::signbit(mF64[1])? -1.0 : 1.0, 
+	return DVec3(std::signbit(mF64[0])? -1.0 : 1.0,
+				 std::signbit(mF64[1])? -1.0 : 1.0,
 				 std::signbit(mF64[2])? -1.0 : 1.0);
 #endif
 }

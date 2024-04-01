@@ -116,7 +116,7 @@ public:
 		switch (inLayer1)
 		{
 		case Layers::NON_MOVING:
-			return inLayer2 == BroadPhaseLayers::MOVING;
+			return inLayer2 == BroadPhaseLayers::MOVING || inLayer2 == BroadPhaseLayers::DEBRIS;
 		case Layers::MOVING:
 			return inLayer2 == BroadPhaseLayers::NON_MOVING || inLayer2 == BroadPhaseLayers::MOVING || inLayer2 == BroadPhaseLayers::SENSOR;
 		case Layers::DEBRIS:
@@ -126,7 +126,7 @@ public:
 		case Layers::UNUSED1:
 		case Layers::UNUSED2:
 		case Layers::UNUSED3:
-			return false;			
+			return false;
 		default:
 			JPH_ASSERT(false);
 			return false;

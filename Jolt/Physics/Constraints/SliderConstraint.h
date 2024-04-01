@@ -21,7 +21,7 @@ public:
 	// See: ConstraintSettings::SaveBinaryState
 	virtual void				SaveBinaryState(StreamOut &inStream) const override;
 
-	/// Create an an instance of this constraint.
+	/// Create an instance of this constraint.
 	/// Note that the rotation constraint will be solved from body 1. This means that if body 1 and body 2 have different masses / inertias (kinematic body = infinite mass / inertia), body 1 should be the heaviest body.
 	virtual TwoBodyConstraint *	Create(Body &inBody1, Body &inBody2) const override;
 
@@ -39,7 +39,7 @@ public:
 	RVec3						mPoint1 = RVec3::sZero();
 	Vec3						mSliderAxis1 = Vec3::sAxisX();
 	Vec3						mNormalAxis1 = Vec3::sAxisY();
-	
+
 	/// Body 2 constraint reference frame (space determined by mSpace)
 	RVec3						mPoint2 = RVec3::sZero();
 	Vec3						mSliderAxis2 = Vec3::sAxisX();
@@ -76,6 +76,7 @@ public:
 	virtual EConstraintSubType	GetSubType() const override								{ return EConstraintSubType::Slider; }
 	virtual void				NotifyShapeChanged(const BodyID &inBodyID, Vec3Arg inDeltaCOM) override;
 	virtual void				SetupVelocityConstraint(float inDeltaTime) override;
+	virtual void				ResetWarmStart() override;
 	virtual void				WarmStartVelocityConstraint(float inWarmStartImpulseRatio) override;
 	virtual bool				SolveVelocityConstraint(float inDeltaTime) override;
 	virtual bool				SolvePositionConstraint(float inDeltaTime, float inBaumgarte) override;
@@ -150,7 +151,7 @@ private:
 
 	// Inverse of initial rotation from body 1 to body 2 in body 1 space
 	Quat						mInvInitialOrientation;
-		
+
 	// Slider limits
 	bool						mHasLimits;
 	float						mLimitsMin;

@@ -123,12 +123,13 @@ ConvexHullShape::ConvexHullShape(const ConvexHullShapeSettings &inSettings, Shap
 	// Calculate inertia matrix assuming density is 1, note that element (3, 3) is garbage
 	mInertia = Mat44::sIdentity() * (covariance_matrix(0, 0) + covariance_matrix(1, 1) + covariance_matrix(2, 2)) - covariance_matrix;
 
-	// Convert polygons fron the builder to our internal representation
+	// Convert polygons from the builder to our internal representation
 	using VtxMap = UnorderedMap<int, uint8>;
 	VtxMap vertex_map;
 	for (BuilderFace *builder_face : builder_faces)
 	{
 		// Determine where the vertices go
+		JPH_ASSERT(mVertexIdx.size() <= 0xFFFF);
 		uint16 first_vertex = (uint16)mVertexIdx.size();
 		uint16 num_vertices = 0;
 
@@ -180,7 +181,7 @@ ConvexHullShape::ConvexHullShape(const ConvexHullShapeSettings &inSettings, Shap
 	// Test if GetSupportFunction can support this many points
 	if (mPoints.size() > cMaxPointsInHull)
 	{
-		outResult.SetError(StringFormat("Internal error: Too many points in hull (%d), max allowed %d", mPoints.size(), cMaxPointsInHull));
+		outResult.SetError(StringFormat("Internal error: Too many points in hull (%u), max allowed %d", (uint)mPoints.size(), cMaxPointsInHull));
 		return;
 	}
 
@@ -205,60 +206,57 @@ ConvexHullShape::ConvexHullShape(const ConvexHullShapeSettings &inSettings, Shap
 			return;
 		}
 
-		if (faces.size() > 1)
+		// Find the 3 normals that form the largest tetrahedron
+		// The largest tetrahedron we can get is ((1, 0, 0) x (0, 1, 0)) . (0, 0, 1) = 1, if the volume is only 5% of that,
+		// the three vectors are too coplanar and we fall back to using only 2 plane normals
+		float biggest_volume = 0.05f;
+		int best3[3] = { -1, -1, -1 };
+
+		// When using 2 normals, we get the two with the biggest angle between them with a minimal difference of 1 degree
+		// otherwise we fall back to just using 1 plane normal
+		float smallest_dot = Cos(DegreesToRadians(1.0f));
+		int best2[2] = { -1, -1 };
+
+		for (int face1 = 0; face1 < (int)faces.size(); ++face1)
 		{
-			// Find the 3 normals that form the largest tetrahedron
-			// The largest tetrahedron we can get is ((1, 0, 0) x (0, 1, 0)) . (0, 0, 1) = 1, if the volume is only 5% of that,
-			// the three vectors are too coplanar and we fall back to using only 2 plane normals
-			float biggest_volume = 0.05f;
-			int best3[3] = { -1, -1, -1 };
-
-			// When using 2 normals, we get the two with the biggest angle between them with a minimal difference of 1 degree
-			// otherwise we fall back to just using 1 plane normal
-			float smallest_dot = Cos(DegreesToRadians(1.0f));
-			int best2[2] = { -1, -1 };
-
-			for (int face1 = 0; face1 < (int)faces.size(); ++face1)
+			Vec3 normal1 = mPlanes[faces[face1]].GetNormal();
+			for (int face2 = face1 + 1; face2 < (int)faces.size(); ++face2)
 			{
-				Vec3 normal1 = mPlanes[faces[face1]].GetNormal();
-				for (int face2 = face1 + 1; face2 < (int)faces.size(); ++face2)
+				Vec3 normal2 = mPlanes[faces[face2]].GetNormal();
+				Vec3 cross = normal1.Cross(normal2);
+
+				// Determine the 2 face normals that are most apart
+				float dot = normal1.Dot(normal2);
+				if (dot < smallest_dot)
 				{
-					Vec3 normal2 = mPlanes[faces[face2]].GetNormal();
-					Vec3 cross = normal1.Cross(normal2);
+					smallest_dot = dot;
+					best2[0] = faces[face1];
+					best2[1] = faces[face2];
+				}
 
-					// Determine the 2 face normals that are most apart
-					float dot = normal1.Dot(normal2);
-					if (dot < smallest_dot)
+				// Determine the 3 face normals that form the largest tetrahedron
+				for (int face3 = face2 + 1; face3 < (int)faces.size(); ++face3)
+				{
+					Vec3 normal3 = mPlanes[faces[face3]].GetNormal();
+					float volume = abs(cross.Dot(normal3));
+					if (volume > biggest_volume)
 					{
-						smallest_dot = dot;
-						best2[0] = faces[face1];
-						best2[1] = faces[face2];
-					}
-
-					// Determine the 3 face normals that form the largest tetrahedron
-					for (int face3 = face2 + 1; face3 < (int)faces.size(); ++face3)
-					{
-						Vec3 normal3 = mPlanes[faces[face3]].GetNormal();
-						float volume = abs(cross.Dot(normal3));
-						if (volume > biggest_volume)
-						{
-							biggest_volume = volume;
-							best3[0] = faces[face1];
-							best3[1] = faces[face2];
-							best3[2] = faces[face3];
-						}
+						biggest_volume = volume;
+						best3[0] = faces[face1];
+						best3[1] = faces[face2];
+						best3[2] = faces[face3];
 					}
 				}
 			}
-
-			// If we didn't find 3 planes, use 2, if we didn't find 2 use 1
-			if (best3[0] != -1)
-				faces = { best3[0], best3[1], best3[2] };
-			else if (best2[0] != -1)
-				faces = { best2[0], best2[1] };
-			else
-				faces = { faces[0] };
 		}
+
+		// If we didn't find 3 planes, use 2, if we didn't find 2 use 1
+		if (best3[0] != -1)
+			faces = { best3[0], best3[1], best3[2] };
+		else if (best2[0] != -1)
+			faces = { best2[0], best2[1] };
+		else
+			faces = { faces[0] };
 
 		// Copy the faces to the points buffer
 		Point &point = mPoints[p];
@@ -326,7 +324,7 @@ ConvexHullShape::ConvexHullShape(const ConvexHullShapeSettings &inSettings, Shap
 				// |n2x n2y n2z| |y| = - | r + c2 | <=> n point = -r (1, 1, 1) - (c1, c2, c3)
 				// |n3x n3y n3z| |z|     | r + c3 |
 				// Where point = (x, y, z), n1x is the x component of the first plane, c1 = plane constant of plane 1, etc.
-				// The relation between how much the interesection point shifts as a function of r is: -r * n^-1 (1, 1, 1) = r * offset
+				// The relation between how much the intersection point shifts as a function of r is: -r * n^-1 (1, 1, 1) = r * offset
 				// Where offset = -n^-1 (1, 1, 1) or -n^-1 (1, 1, 0) in case only the first 2 planes are offset
 				// The error that is introduced by a convex radius r is: error = r * |offset| - r
 				// So the max convex radius given error is: r = error / (|offset| - 1)
@@ -544,6 +542,7 @@ const ConvexShape::Support *ConvexHullShape::GetSupportFunction(ESupportMode inM
 	switch (inMode)
 	{
 	case ESupportMode::IncludeConvexRadius:
+	case ESupportMode::Default:
 		if (ScaleHelpers::IsNotScaled(inScale))
 			return new (&inBuffer) HullWithConvex(this);
 		else
@@ -1058,35 +1057,66 @@ void ConvexHullShape::CollidePoint(Vec3Arg inPoint, const SubShapeIDCreator &inS
 	ioCollector.AddHit({ TransformedShape::sGetBodyID(ioCollector.GetContext()), inSubShapeIDCreator.GetID() });
 }
 
-void ConvexHullShape::CollideSoftBodyVertices(Mat44Arg inCenterOfMassTransform, Array<SoftBodyVertex> &ioVertices, [[maybe_unused]] float inDeltaTime, [[maybe_unused]] Vec3Arg inDisplacementDueToGravity, int inCollidingShapeIndex) const
+void ConvexHullShape::CollideSoftBodyVertices(Mat44Arg inCenterOfMassTransform, Vec3Arg inScale, SoftBodyVertex *ioVertices, uint inNumVertices, [[maybe_unused]] float inDeltaTime, [[maybe_unused]] Vec3Arg inDisplacementDueToGravity, int inCollidingShapeIndex) const
 {
 	Mat44 inverse_transform = inCenterOfMassTransform.InversedRotationTranslation();
 
-	for (SoftBodyVertex &v : ioVertices)
-		if (v.mInvMass > 0.0f)
+	Vec3 inv_scale = inScale.Reciprocal();
+	bool is_not_scaled = ScaleHelpers::IsNotScaled(inScale);
+	float scale_flip = ScaleHelpers::IsInsideOut(inScale)? -1.0f : 1.0f;
+
+	for (SoftBodyVertex *v = ioVertices, *sbv_end = ioVertices + inNumVertices; v < sbv_end; ++v)
+		if (v->mInvMass > 0.0f)
 		{
-			Vec3 local_pos = inverse_transform * v.mPosition;
+			Vec3 local_pos = inverse_transform * v->mPosition;
 
 			// Find most facing plane
 			float max_distance = -FLT_MAX;
-			const Plane *max_plane = nullptr;
-			for (const Plane &p : mPlanes)
+			Vec3 max_plane_normal = Vec3::sZero();
+			uint max_plane_idx = 0;
+			if (is_not_scaled)
 			{
-				float distance = p.SignedDistance(local_pos);
-				if (distance > max_distance)
+				// Without scale, it is trivial to calculate the distance to the hull
+				for (const Plane &p : mPlanes)
 				{
-					max_distance = distance;
-					max_plane = &p;
+					float distance = p.SignedDistance(local_pos);
+					if (distance > max_distance)
+					{
+						max_distance = distance;
+						max_plane_normal = p.GetNormal();
+						max_plane_idx = uint(&p - mPlanes.data());
+					}
 				}
 			}
+			else
+			{
+				// When there's scale we need to calculate the planes first
+				for (uint i = 0; i < (uint)mPlanes.size(); ++i)
+				{
+					// Calculate plane normal and point by scaling the original plane
+					Vec3 plane_normal = (inv_scale * mPlanes[i].GetNormal()).Normalized();
+					Vec3 plane_point = inScale * mPoints[mVertexIdx[mFaces[i].mFirstVertex]].mPosition;
+
+					float distance = plane_normal.Dot(local_pos - plane_point);
+					if (distance > max_distance)
+					{
+						max_distance = distance;
+						max_plane_normal = plane_normal;
+						max_plane_idx = i;
+					}
+				}
+			}
+			bool is_outside = max_distance > 0.0f;
+
+			// Project point onto that plane
+			Vec3 closest_point = local_pos - max_distance * max_plane_normal;
 
 			// Check edges if we're outside the hull (when inside we know the closest face is also the closest point to the surface)
-			float closest_edge_distance = FLT_MAX;
-			Plane closest_plane = *max_plane;
-			if (max_distance <= 0.0f)
+			if (is_outside)
 			{
 				// Loop over edges
-				const Face &face = mFaces[int(max_plane - mPlanes.data())];
+				float closest_point_dist_sq = FLT_MAX;
+				const Face &face = mFaces[max_plane_idx];
 				for (const uint8 *v_start = &mVertexIdx[face.mFirstVertex], *v1 = v_start, *v_end = v_start + face.mNumVertices; v1 < v_end; ++v1)
 				{
 					// Find second point
@@ -1095,37 +1125,42 @@ void ConvexHullShape::CollideSoftBodyVertices(Mat44Arg inCenterOfMassTransform, 
 						v2 = v_start;
 
 					// Get edge points
-					Vec3 p1 = mPoints[*v1].mPosition;
-					Vec3 p2 = mPoints[*v2].mPosition;
+					Vec3 p1 = inScale * mPoints[*v1].mPosition;
+					Vec3 p2 = inScale * mPoints[*v2].mPosition;
 
 					// Check if the position is outside the edge (if not, the face will be closer)
-					Vec3 edge_normal = (p2 - p1).Cross(max_plane->GetNormal());
-					if (edge_normal.Dot(local_pos - p1) > 0.0f)
+					Vec3 edge_normal = (p2 - p1).Cross(max_plane_normal);
+					if (scale_flip * edge_normal.Dot(local_pos - p1) > 0.0f)
 					{
 						// Get closest point on edge
 						uint32 set;
 						Vec3 closest = ClosestPoint::GetClosestPointOnLine(p1 - local_pos, p2 - local_pos, set);
-						float distance = closest.Length();
-						if (distance < closest_edge_distance)
-						{
-							closest_edge_distance = distance;
-							Vec3 point = local_pos + closest;
-							Vec3 normal = (local_pos - point).NormalizedOr(max_plane->GetNormal());
-							closest_plane = Plane::sFromPointAndNormal(point, normal);
-						}
+						float distance_sq = closest.LengthSq();
+						if (distance_sq < closest_point_dist_sq)
+							closest_point = local_pos + closest;
 					}
 				}
 			}
 
-			// Closest point on edge
-			float penetration = -(closest_edge_distance != FLT_MAX? closest_edge_distance : max_distance);
-			if (penetration > v.mLargestPenetration)
+			// Check if this is the largest penetration
+			Vec3 normal = local_pos - closest_point;
+			float normal_length = normal.Length();
+			float penetration = normal_length;
+			if (is_outside)
+				penetration = -penetration;
+			else
+				normal = -normal;
+			if (penetration > v->mLargestPenetration)
 			{
-				v.mLargestPenetration = penetration;
+				v->mLargestPenetration = penetration;
+
+				// Calculate contact plane
+				normal = normal_length > 0.0f? normal / normal_length : max_plane_normal;
+				Plane plane = Plane::sFromPointAndNormal(closest_point, normal);
 
 				// Store collision
-				v.mCollisionPlane = closest_plane.GetTransformed(inCenterOfMassTransform);
-				v.mCollidingShapeIndex = inCollidingShapeIndex;
+				v->mCollisionPlane = plane.GetTransformed(inCenterOfMassTransform);
+				v->mCollidingShapeIndex = inCollidingShapeIndex;
 			}
 		}
 }

@@ -14,9 +14,9 @@
 #include <Layers.h>
 #include <Renderer/DebugRendererImp.h>
 
-JPH_IMPLEMENT_RTTI_VIRTUAL(SensorTest) 
-{ 
-	JPH_ADD_BASE_CLASS(SensorTest, Test) 
+JPH_IMPLEMENT_RTTI_VIRTUAL(SensorTest)
+{
+	JPH_ADD_BASE_CLASS(SensorTest, Test)
 }
 
 SensorTest::~SensorTest()
@@ -32,12 +32,12 @@ void SensorTest::Initialize()
 	CreateFloor(400.0f);
 
 	{
-		// A static sensor that attrects dynamic bodies that enter its area
+		// A static sensor that attracts dynamic bodies that enter its area
 		BodyCreationSettings sensor_settings(new SphereShape(10.0f), RVec3(0, 10, 0), Quat::sIdentity(), EMotionType::Static, Layers::SENSOR);
 		sensor_settings.mIsSensor = true;
 		mSensorID[StaticAttractor] = mBodyInterface->CreateAndAddBody(sensor_settings, EActivation::DontActivate);
 	}
-	
+
 	{
 		// A static sensor that only detects active bodies
 		BodyCreationSettings sensor_settings(new BoxShape(Vec3::sReplicate(5.0f)), RVec3(-10, 5.1f, 0), Quat::sIdentity(), EMotionType::Static, Layers::SENSOR);
@@ -56,7 +56,7 @@ void SensorTest::Initialize()
 		// A kinematic sensor that also detects static bodies
 		BodyCreationSettings sensor_settings(new BoxShape(Vec3::sReplicate(5.0f)), RVec3(25, 5.1f, 0), Quat::sIdentity(), EMotionType::Kinematic, Layers::MOVING); // Put in a layer that collides with static
 		sensor_settings.mIsSensor = true;
-		sensor_settings.mSensorDetectsStatic = true;
+		sensor_settings.mCollideKinematicVsNonDynamic = true;
 		mSensorID[SensorDetectingStatic] = mBodyInterface->CreateAndAddBody(sensor_settings, EActivation::Activate);
 	}
 
@@ -123,7 +123,7 @@ void SensorTest::PrePhysicsUpdate(const PreUpdateParams &inParams)
 	RVec3 center(0, 10, 0);
 	float centrifugal_force = 10.0f;
 	Vec3 gravity = mPhysicsSystem->GetGravity();
-	
+
 	for (const BodyAndCount &body_and_count : mBodiesInSensor[StaticAttractor])
 	{
 		BodyLockWrite body_lock(mPhysicsSystem->GetBodyLockInterface(), body_and_count.mBodyID);

@@ -32,7 +32,7 @@ class CollisionCollectorTraitsCollideShape
 {
 public:
 	/// For shape collisions we use -penetration depth to order hits.
-	static constexpr float InitialEarlyOutFraction = FLT_MAX;				///< Most shallow hit: Separatation is infinite
+	static constexpr float InitialEarlyOutFraction = FLT_MAX;				///< Most shallow hit: Separation is infinite
 	static constexpr float ShouldEarlyOutFraction = -FLT_MAX;				///< Deepest hit: Penetration is infinite
 };
 
@@ -59,10 +59,10 @@ public:
 	virtual					~CollisionCollector() = default;
 
 	/// If you want to reuse this collector, call Reset()
-	virtual void			Reset()											{ mEarlyOutFraction = TraitsType::InitialEarlyOutFraction; } 
+	virtual void			Reset()											{ mEarlyOutFraction = TraitsType::InitialEarlyOutFraction; }
 
 	/// When running a query through the NarrowPhaseQuery class, this will be called for every body that is potentially colliding.
-	/// It allows collecting additional information needed by the collision collector implementation from the body under lock protection 
+	/// It allows collecting additional information needed by the collision collector implementation from the body under lock protection
 	/// before AddHit is called (e.g. the user data pointer or the velocity of the body).
 	virtual void			OnBody([[maybe_unused]] const Body &inBody)		{ /* Collects nothing by default */ }
 
@@ -71,13 +71,13 @@ public:
 	const TransformedShape *GetContext() const								{ return mContext; }
 
 	/// This function will be called for every hit found, it's up to the application to decide how to store the hit
-	virtual void			AddHit(const ResultType &inResult) = 0;		
+	virtual void			AddHit(const ResultType &inResult) = 0;
 
 	/// Update the early out fraction (should be lower than before)
 	inline void				UpdateEarlyOutFraction(float inFraction)		{ JPH_ASSERT(inFraction <= mEarlyOutFraction); mEarlyOutFraction = inFraction; }
 
 	/// Reset the early out fraction to a specific value
-	inline void				ResetEarlyOutFraction(float inFraction)			{ mEarlyOutFraction = inFraction; }
+	inline void				ResetEarlyOutFraction(float inFraction = TraitsType::InitialEarlyOutFraction) { mEarlyOutFraction = inFraction; }
 
 	/// Force the collision detection algorithm to terminate as soon as possible. Call this from the AddHit function when a satisfying hit is found.
 	inline void				ForceEarlyOut()									{ mEarlyOutFraction = TraitsType::ShouldEarlyOutFraction; }

@@ -28,7 +28,7 @@ public:
 	// See: ContactListener
 	virtual void		OnContactAdded(const Body &inBody1, const Body &inBody2, const ContactManifold &inManifold, ContactSettings &ioSettings) override;
 	virtual void		OnContactRemoved(const SubShapeIDPair &inSubShapePair) override;
-	
+
 	// Saving / restoring state for replay
 	virtual void		SaveState(StateRecorder &inStream) const override;
 	virtual void		RestoreState(StateRecorder &inStream) override;
@@ -38,7 +38,7 @@ private:
 
 	enum
 	{
-		StaticAttractor,									// A static sensor that attrects dynamic bodies that enter its area
+		StaticAttractor,									// A static sensor that attracts dynamic bodies that enter its area
 		StaticSensor,										// A static sensor that only detects active bodies
 		KinematicSensor,									// A kinematic sensor that also detects sleeping bodies
 		SensorDetectingStatic,								// A kinematic sensor that detects static bodies

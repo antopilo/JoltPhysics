@@ -8,7 +8,7 @@
 
 JPH_NAMESPACE_BEGIN
 
-/// Allocator for temporary allocations. 
+/// Allocator for temporary allocations.
 /// This allocator works as a stack: The blocks must always be freed in the reverse order as they are allocated.
 /// Note that allocations and frees can take place from different threads, but the order is guaranteed though
 /// job dependencies, so it is not needed to use any form of locking.
@@ -58,7 +58,10 @@ public:
 		{
 			uint new_top = mTop + AlignUp(inSize, JPH_RVECTOR_ALIGNMENT);
 			if (new_top > mSize)
-				JPH_CRASH; // Out of memory
+			{
+				Trace("TempAllocator: Out of memory");
+				std::abort();
+			}
 			void *address = mBase + mTop;
 			mTop = new_top;
 			return address;
@@ -76,7 +79,10 @@ public:
 		{
 			mTop -= AlignUp(inSize, JPH_RVECTOR_ALIGNMENT);
 			if (mBase + mTop != inAddress)
-				JPH_CRASH; // Freeing in the wrong order
+			{
+				Trace("TempAllocator: Freeing in the wrong order");
+				std::abort();
+			}
 		}
 	}
 

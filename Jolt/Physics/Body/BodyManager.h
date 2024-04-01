@@ -14,6 +14,7 @@ JPH_NAMESPACE_BEGIN
 class BodyCreationSettings;
 class SoftBodyCreationSettings;
 class BodyActivationListener;
+class StateRecorderFilter;
 struct PhysicsSettings;
 #ifdef JPH_DEBUG_RENDERER
 class DebugRenderer;
@@ -42,7 +43,7 @@ public:
 	uint							GetNumBodies() const;
 
 	/// Gets the max bodies that we can support
-	uint							GetMaxBodies() const						{ return (uint)mBodies.capacity(); }
+	uint							GetMaxBodies() const						{ return uint(mBodies.capacity()); }
 
 	/// Helper struct that counts the number of bodies of each type
 	struct BodyStats
@@ -101,10 +102,10 @@ public:
 	void							GetActiveBodies(EBodyType inType, BodyIDVector &outBodyIDs) const;
 
 	/// Get the list of active bodies. Note: Not thread safe. The active bodies list can change at any moment.
-	const BodyID *					GetActiveBodiesUnsafe(EBodyType inType) const { return mActiveBodies[(int)inType]; }
+	const BodyID *					GetActiveBodiesUnsafe(EBodyType inType) const { return mActiveBodies[int(inType)]; }
 
 	/// Get the number of active bodies.
-	uint32							GetNumActiveBodies(EBodyType inType) const	{ return mNumActiveBodies[(int)inType]; }
+	uint32							GetNumActiveBodies(EBodyType inType) const	{ return mNumActiveBodies[int(inType)]; }
 
 	/// Get the number of active bodies that are using continuous collision detection
 	uint32							GetNumActiveCCDBodies() const				{ return mNumActiveCCDBodies; }
@@ -191,10 +192,16 @@ public:
 	void							ValidateContactCacheForAllBodies();
 
 	/// Saving state for replay
-	void							SaveState(StateRecorder &inStream) const;
+	void							SaveState(StateRecorder &inStream, const StateRecorderFilter *inFilter) const;
 
 	/// Restoring state for replay. Returns false if failed.
 	bool							RestoreState(StateRecorder &inStream);
+
+	/// Save the state of a single body for replay
+	void							SaveBodyState(const Body &inBody, StateRecorder &inStream) const;
+
+	/// Save the state of a single body for replay
+	void							RestoreBodyState(Body &inBody, StateRecorder &inStream);
 
 	enum class EShapeColor
 	{
@@ -223,8 +230,12 @@ public:
 		bool						mDrawMassAndInertia = false;					///< Draw the mass and inertia (as the box equivalent) for each body
 		bool						mDrawSleepStats = false;						///< Draw stats regarding the sleeping algorithm of each body
 		bool						mDrawSoftBodyVertices = false;					///< Draw the vertices of soft bodies
+		bool						mDrawSoftBodyVertexVelocities = false;			///< Draw the velocities of the vertices of soft bodies
 		bool						mDrawSoftBodyEdgeConstraints = false;			///< Draw the edge constraints of soft bodies
+		bool						mDrawSoftBodyBendConstraints = false;			///< Draw the bend constraints of soft bodies
 		bool						mDrawSoftBodyVolumeConstraints = false;			///< Draw the volume constraints of soft bodies
+		bool						mDrawSoftBodySkinConstraints = false;			///< Draw the skin constraints of soft bodies
+		bool						mDrawSoftBodyLRAConstraints = false;			///< Draw the LRA constraints of soft bodies
 		bool						mDrawSoftBodyPredictedBounds = false;			///< Draw the predicted bounds of soft bodies
 	};
 
@@ -268,6 +279,12 @@ private:
 	__attribute__((no_sanitize("implicit-conversion"))) // We intentionally overflow the uint8 sequence number
 #endif
 	inline uint8					GetNextSequenceNumber(int inBodyIndex)		{ return ++mBodySequenceNumbers[inBodyIndex]; }
+
+	/// Add a single body to mActiveBodies, note doesn't lock the active body mutex!
+	inline void						AddBodyToActiveBodies(Body &ioBody);
+
+	/// Remove a single body from mActiveBodies, note doesn't lock the active body mutex!
+	inline void						RemoveBodyFromActiveBodies(Body &ioBody);
 
 	/// Helper function to remove a body from the manager
 	JPH_INLINE Body *				RemoveBodyInternal(const BodyID &inBodyID);

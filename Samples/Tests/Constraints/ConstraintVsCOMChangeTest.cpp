@@ -12,9 +12,9 @@
 #include <Jolt/Physics/Body/BodyCreationSettings.h>
 #include <Layers.h>
 
-JPH_IMPLEMENT_RTTI_VIRTUAL(ConstraintVsCOMChangeTest) 
-{ 
-	JPH_ADD_BASE_CLASS(ConstraintVsCOMChangeTest, Test) 
+JPH_IMPLEMENT_RTTI_VIRTUAL(ConstraintVsCOMChangeTest)
+{
+	JPH_ADD_BASE_CLASS(ConstraintVsCOMChangeTest, Test)
 }
 
 void ConstraintVsCOMChangeTest::Initialize()
@@ -78,12 +78,12 @@ void ConstraintVsCOMChangeTest::PrePhysicsUpdate(const PreUpdateParams& inParams
 	UpdateShapes();
 }
 
-void ConstraintVsCOMChangeTest::SaveState(StateRecorder& inStream) const
+void ConstraintVsCOMChangeTest::SaveState(StateRecorder &inStream) const
 {
 	inStream.Write(mTime);
 }
 
-void ConstraintVsCOMChangeTest::RestoreState(StateRecorder& inStream)
+void ConstraintVsCOMChangeTest::RestoreState(StateRecorder &inStream)
 {
 	inStream.Read(mTime);
 

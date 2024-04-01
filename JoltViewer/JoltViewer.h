@@ -25,9 +25,9 @@ class JoltViewer : public Application
 public:
 	// Constructor / destructor
 							JoltViewer();
-		
-	// Render the frame
-	virtual bool			RenderFrame(float inDeltaTime) override;
+
+	// Update the application
+	virtual bool			UpdateFrame(float inDeltaTime) override;
 
 private:
 	enum class EPlaybackMode
@@ -42,5 +42,5 @@ private:
 	DebugRendererPlayback	mRendererPlayback { *mDebugRenderer };
 
 	EPlaybackMode			mPlaybackMode = EPlaybackMode::Play;						// Current playback state. Indicates if we're playing or scrubbing back/forward.
-	uint					mCurrentFrame = 0;	
+	uint					mCurrentFrame = 0;
 };

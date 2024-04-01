@@ -30,7 +30,7 @@ TEST_SUITE("CharacterVirtualTests")
 			mCharacterSettings.mSupportingVolume = Plane(Vec3::sAxisY(), -mHeightStanding); // Accept contacts that touch the lower sphere of the capsule
 
 			// Create character
-			mCharacter = new CharacterVirtual(&mCharacterSettings, mInitialPosition, Quat::sIdentity(), mContext.GetSystem());
+			mCharacter = new CharacterVirtual(&mCharacterSettings, mInitialPosition, Quat::sIdentity(), 0, mContext.GetSystem());
 			mCharacter->SetListener(this);
 		}
 
@@ -49,7 +49,7 @@ TEST_SUITE("CharacterVirtualTests")
 			{
 				// Assume velocity of ground when on ground
 				new_velocity = ground_velocity;
-		
+
 				// Jump
 				new_velocity += Vec3(0, mJumpSpeed, 0);
 				mJumpSpeed = 0.0f;
@@ -236,7 +236,7 @@ TEST_SUITE("CharacterVirtualTests")
 			// Cancel movement in slope direction
 			expected_translation -= expected_translation.Dot(slope_normal) * slope_normal;
 
-			// Check that we travelled the right amount
+			// Check that we traveled the right amount
 			CHECK_APPROX_EQUAL(translation, expected_translation, 1.0e-4f);
 		}
 	}
@@ -305,7 +305,7 @@ TEST_SUITE("CharacterVirtualTests")
 				}
 			}
 
-			// Check that we travelled the right amount
+			// Check that we traveled the right amount
 			CHECK_APPROX_EQUAL(translation, expected_translation, 1.0e-4f);
 		}
 	}
@@ -373,7 +373,7 @@ TEST_SUITE("CharacterVirtualTests")
 
 			// Calculate time it should take to move up the stairs at constant speed
 			float movement_time = (cNumSteps * cStepHeight + radius_and_padding) / character.mHorizontalSpeed.GetZ();
-			int max_steps = int(1.5f * round(movement_time / time_step)); // In practise there is a bit of slowdown while stair stepping, so add a bit of slack
+			int max_steps = int(1.5f * round(movement_time / time_step)); // In practice there is a bit of slowdown while stair stepping, so add a bit of slack
 
 			// Step until we reach the top of the stairs
 			RVec3 last_position = character.mCharacter->GetPosition();
@@ -415,7 +415,7 @@ TEST_SUITE("CharacterVirtualTests")
 		Body &box = c.CreateBox(RVec3::sZero(), Quat::sIdentity(), EMotionType::Kinematic, EMotionQuality::Discrete, Layers::MOVING, Vec3(cFloorHalfWidth, cFloorHalfHeight, cFloorHalfWidth));
 		box.SetAllowSleeping(false);
 
-		// Create character so that it is touching the box at the 
+		// Create character so that it is touching the box at the
 		Character character(c);
 		character.mInitialPosition = RVec3(cCharacterPosition, cFloorHalfHeight, 0);
 		character.Create();
@@ -445,14 +445,14 @@ TEST_SUITE("CharacterVirtualTests")
 		constexpr float cFloorHalfHeight = 1.0f;
 		constexpr float cFloorHalfWidth = 10.0f;
 		constexpr float cLinearVelocity = 0.5f;
-		
+
 		PhysicsTestContext c;
 
 		// Create box
 		Body &box = c.CreateBox(RVec3::sZero(), Quat::sIdentity(), EMotionType::Kinematic, EMotionQuality::Discrete, Layers::MOVING, Vec3(cFloorHalfWidth, cFloorHalfHeight, cFloorHalfWidth));
 		box.SetAllowSleeping(false);
 
-		// Create character so that it is touching the box at the 
+		// Create character so that it is touching the box at the
 		Character character(c);
 		character.mInitialPosition = RVec3(0, cFloorHalfHeight, 0);
 		character.Create();
@@ -502,7 +502,7 @@ TEST_SUITE("CharacterVirtualTests")
 		character.mUpdateSettings.mWalkStairsStepUp = Vec3::sZero();
 		character.Create();
 
-		// Radius including pading
+		// Radius including padding
 		const float character_radius = character.mRadiusStanding + character.mCharacterSettings.mCharacterPadding;
 
 		// Create a half cylinder with caps for testing contact point limit

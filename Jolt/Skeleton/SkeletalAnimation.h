@@ -17,7 +17,7 @@ class JPH_EXPORT SkeletalAnimation : public RefTarget<SkeletalAnimation>
 public:
 	JPH_DECLARE_SERIALIZABLE_NON_VIRTUAL(JPH_EXPORT, SkeletalAnimation)
 
-	/// Constains the current state of a joint, a local space transformation relative to its parent joint
+	/// Contains the current state of a joint, a local space transformation relative to its parent joint
 	class JointState
 	{
 	public:
@@ -25,7 +25,7 @@ public:
 
 		/// Convert from a local space matrix
 		void							FromMatrix(Mat44Arg inMatrix);
-		
+
 		/// Convert to matrix representation
 		inline Mat44					ToMatrix() const									{ return Mat44::sRotationTranslation(mRotation, mTranslation); }
 
@@ -65,7 +65,7 @@ public:
 	/// Get the (interpolated) joint transforms at time inTime
 	void								Sample(float inTime, SkeletonPose &ioPose) const;
 
-	/// Get joint samples			
+	/// Get joint samples
 	const AnimatedJointVector &			GetAnimatedJoints() const							{ return mAnimatedJoints; }
 	AnimatedJointVector &				GetAnimatedJoints()									{ return mAnimatedJoints; }
 

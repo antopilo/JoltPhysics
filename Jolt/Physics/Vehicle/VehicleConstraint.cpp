@@ -27,7 +27,7 @@ JPH_IMPLEMENT_SERIALIZABLE_VIRTUAL(VehicleConstraintSettings)
 }
 
 void VehicleConstraintSettings::SaveBinaryState(StreamOut &inStream) const
-{ 
+{
 	ConstraintSettings::SaveBinaryState(inStream);
 
 	inStream.Write(mUp);
@@ -99,13 +99,16 @@ VehicleConstraint::VehicleConstraint(Body &inVehicleBody, const VehicleConstrain
 		JPH_ASSERT(r.mStiffness >= 0.0f);
 	}
 
-	// Construct our controler class
+	// Construct our controller class
 	mController = inSettings.mController->ConstructController(*this);
 
 	// Create wheels
 	mWheels.resize(inSettings.mWheels.size());
 	for (uint i = 0; i < mWheels.size(); ++i)
 		mWheels[i] = mController->ConstructWheel(*inSettings.mWheels[i]);
+
+	// Use the body ID as a seed for the step counter so that not all vehicles will update at the same time
+	mCurrentStep = uint32(Hash64(inVehicleBody.GetID().GetIndex()));
 }
 
 VehicleConstraint::~VehicleConstraint()
@@ -158,6 +161,10 @@ void VehicleConstraint::OnStep(float inDeltaTime, PhysicsSystem &inPhysicsSystem
 {
 	JPH_PROFILE_FUNCTION();
 
+	// Callback to higher-level systems. We do it before PreCollide, in case steering changes.
+	if (mPreStepCallback != nullptr)
+		mPreStepCallback(*this, inDeltaTime, inPhysicsSystem);
+
 	// Calculate new world up vector by inverting gravity
 	mWorldUp = (-inPhysicsSystem.GetGravity()).NormalizedOr(mWorldUp);
 
@@ -167,6 +174,9 @@ void VehicleConstraint::OnStep(float inDeltaTime, PhysicsSystem &inPhysicsSystem
 	// Calculate if this constraint is active by checking if our main vehicle body is active or any of the bodies we touch are active
 	mIsActive = mBody->IsActive();
 
+	// Test how often we need to update the wheels
+	uint num_steps_between_collisions = mIsActive? mNumStepsBetweenCollisionTestActive : mNumStepsBetweenCollisionTestInactive;
+
 	RMat44 body_transform = mBody->GetWorldTransform();
 
 	// Test collision for wheels
@@ -175,20 +185,51 @@ void VehicleConstraint::OnStep(float inDeltaTime, PhysicsSystem &inPhysicsSystem
 		Wheel *w = mWheels[wheel_index];
 		const WheelSettings *settings = w->mSettings;
 
-		// Reset contact
-		w->mContactBodyID = BodyID();
-		w->mContactBody = nullptr;
-		w->mContactSubShapeID = SubShapeID();
-		w->mSuspensionLength = settings->mSuspensionMaxLength;
-
-		// Test collision to find the floor
+		// Calculate suspension origin and direction
 		RVec3 ws_origin = body_transform * settings->mPosition;
 		Vec3 ws_direction = body_transform.Multiply3x3(settings->mSuspensionDirection);
-		if (mVehicleCollisionTester->Collide(inPhysicsSystem, *this, wheel_index, ws_origin, ws_direction, mBody->GetID(), w->mContactBody, w->mContactSubShapeID, w->mContactPosition, w->mContactNormal, w->mSuspensionLength))
-		{
-			// Store ID (pointer is not valid outside of the simulation step)
-			w->mContactBodyID = w->mContactBody->GetID();
 
+		// Test if we need to update this wheel
+		if (num_steps_between_collisions == 0
+			|| (mCurrentStep + wheel_index) % num_steps_between_collisions != 0)
+		{
+			// Simplified wheel contact test
+			if (!w->mContactBodyID.IsInvalid())
+			{
+				// Test if the body is still valid
+				w->mContactBody = inPhysicsSystem.GetBodyLockInterfaceNoLock().TryGetBody(w->mContactBodyID);
+				if (w->mContactBody == nullptr)
+				{
+					// It's not, forget the contact
+					w->mContactBodyID = BodyID();
+					w->mContactSubShapeID = SubShapeID();
+					w->mSuspensionLength = settings->mSuspensionMaxLength;
+				}
+				else
+				{
+					// Extrapolate the wheel contact properties
+					mVehicleCollisionTester->PredictContactProperties(inPhysicsSystem, *this, wheel_index, ws_origin, ws_direction, mBody->GetID(), w->mContactBody, w->mContactSubShapeID, w->mContactPosition, w->mContactNormal, w->mSuspensionLength);
+				}
+			}
+		}
+		else
+		{
+			// Full wheel contact test, start by resetting the contact data
+			w->mContactBodyID = BodyID();
+			w->mContactBody = nullptr;
+			w->mContactSubShapeID = SubShapeID();
+			w->mSuspensionLength = settings->mSuspensionMaxLength;
+
+			// Test collision to find the floor
+			if (mVehicleCollisionTester->Collide(inPhysicsSystem, *this, wheel_index, ws_origin, ws_direction, mBody->GetID(), w->mContactBody, w->mContactSubShapeID, w->mContactPosition, w->mContactNormal, w->mSuspensionLength))
+			{
+				// Store ID (pointer is not valid outside of the simulation step)
+				w->mContactBodyID = w->mContactBody->GetID();
+			}
+		}
+
+		if (w->mContactBody != nullptr)
+		{
 			// Store contact velocity, cache this as the contact body may be removed
 			w->mContactPointVelocity = w->mContactBody->GetPointVelocity(w->mContactPosition);
 
@@ -218,6 +259,10 @@ void VehicleConstraint::OnStep(float inDeltaTime, PhysicsSystem &inPhysicsSystem
 			w->mContactLateral = w->mContactLongitudinal.Cross(w->mContactNormal).Normalized();
 		}
 	}
+
+	// Callback to higher-level systems. We do it immediately after wheel collision.
+	if (mPostCollideCallback != nullptr)
+		mPostCollideCallback(*this, inDeltaTime, inPhysicsSystem);
 
 	// Calculate anti-rollbar impulses
 	for (const VehicleAntiRollBar &r : mAntiRollBars)
@@ -258,9 +303,12 @@ void VehicleConstraint::OnStep(float inDeltaTime, PhysicsSystem &inPhysicsSystem
 			}
 	if (mBody->GetAllowSleeping() != allow_sleep)
 		mBody->SetAllowSleeping(allow_sleep);
+
+	// Increment step counter
+	++mCurrentStep;
 }
 
-void VehicleConstraint::BuildIslands(uint32 inConstraintIndex, IslandBuilder &ioBuilder, BodyManager &inBodyManager) 
+void VehicleConstraint::BuildIslands(uint32 inConstraintIndex, IslandBuilder &ioBuilder, BodyManager &inBodyManager)
 {
 	// Find dynamic bodies that our wheels are touching
 	BodyID *body_ids = (BodyID *)JPH_STACK_ALLOC((mWheels.size() + 1) * sizeof(BodyID));
@@ -311,7 +359,7 @@ void VehicleConstraint::BuildIslands(uint32 inConstraintIndex, IslandBuilder &io
 	}
 
 	// Link the constraint in the island
-	ioBuilder.LinkConstraint(inConstraintIndex, mBody->GetIndexInActiveBodiesInternal(), min_active_index); 
+	ioBuilder.LinkConstraint(inConstraintIndex, mBody->GetIndexInActiveBodiesInternal(), min_active_index);
 }
 
 uint VehicleConstraint::BuildIslandSplits(LargeIslandSplitter &ioSplitter) const
@@ -399,7 +447,7 @@ void VehicleConstraint::SetupVelocityConstraint(float inDeltaTime)
 
 				// Calculate the damping and frequency of the suspension spring given the angle between the suspension direction and the contact normal
 				// If the angle between the suspension direction and the inverse of the contact normal is alpha then the force on the spring relates to the force along the contact normal as:
-				// 
+				//
 				// Fspring = Fnormal * cos(alpha)
 				//
 				// The spring force is:
@@ -413,15 +461,15 @@ void VehicleConstraint::SetupVelocityConstraint(float inDeltaTime)
 				// So we can see this as a spring with spring constant:
 				//
 				// k' = k / cos(alpha)
-				// 
+				//
 				// In the same way the velocity relates like:
-				// 
+				//
 				// Vspring = Vnormal * cos(alpha)
 				//
 				// Which results in the modified damping constant c:
 				//
 				// c' = c / cos(alpha)
-				// 
+				//
 				// Note that we clamp 1 / cos(alpha) to the range [0.1, 1] in order not to increase the stiffness / damping by too much.
 				Vec3 ws_direction = body_transform.Multiply3x3(settings->mSuspensionDirection);
 				float cos_angle = max(0.1f, ws_direction.Dot(neg_contact_normal));
@@ -441,7 +489,7 @@ void VehicleConstraint::SetupVelocityConstraint(float inDeltaTime)
 				w->mSuspensionMaxUpPart.CalculateConstraintProperties(*mBody, r1_plus_u, *w->mContactBody, r2, neg_contact_normal);
 			else
 				w->mSuspensionMaxUpPart.Deactivate();
-			
+
 			// Friction and propulsion
 			w->mLongitudinalPart.CalculateConstraintProperties(*mBody, r1_plus_u, *w->mContactBody, r2, -w->mContactLongitudinal);
 			w->mLateralPart.CalculateConstraintProperties(*mBody, r1_plus_u, *w->mContactBody, r2, -w->mContactLateral);
@@ -458,7 +506,20 @@ void VehicleConstraint::SetupVelocityConstraint(float inDeltaTime)
 	CalculatePitchRollConstraintProperties(body_transform);
 }
 
-void VehicleConstraint::WarmStartVelocityConstraint(float inWarmStartImpulseRatio) 
+void VehicleConstraint::ResetWarmStart()
+{
+	for (Wheel *w : mWheels)
+	{
+		w->mSuspensionPart.Deactivate();
+		w->mSuspensionMaxUpPart.Deactivate();
+		w->mLongitudinalPart.Deactivate();
+		w->mLateralPart.Deactivate();
+	}
+
+	mPitchRollPart.Deactivate();
+}
+
+void VehicleConstraint::WarmStartVelocityConstraint(float inWarmStartImpulseRatio)
 {
 	for (Wheel *w : mWheels)
 		if (w->mContactBody != nullptr)
@@ -468,13 +529,13 @@ void VehicleConstraint::WarmStartVelocityConstraint(float inWarmStartImpulseRati
 			w->mSuspensionPart.WarmStart(*mBody, *w->mContactBody, neg_contact_normal, inWarmStartImpulseRatio);
 			w->mSuspensionMaxUpPart.WarmStart(*mBody, *w->mContactBody, neg_contact_normal, inWarmStartImpulseRatio);
 			w->mLongitudinalPart.WarmStart(*mBody, *w->mContactBody, -w->mContactLongitudinal, 0.0f); // Don't warm start the longitudinal part (the engine/brake force, we don't want to preserve anything from the last frame)
-			w->mLateralPart.WarmStart(*mBody, *w->mContactBody, -w->mContactLateral, inWarmStartImpulseRatio);	
+			w->mLateralPart.WarmStart(*mBody, *w->mContactBody, -w->mContactLateral, inWarmStartImpulseRatio);
 		}
 
 	mPitchRollPart.WarmStart(*mBody, Body::sFixedToWorld, inWarmStartImpulseRatio);
 }
 
-bool VehicleConstraint::SolveVelocityConstraint(float inDeltaTime) 
+bool VehicleConstraint::SolveVelocityConstraint(float inDeltaTime)
 {
 	bool impulse = false;
 
@@ -503,7 +564,7 @@ bool VehicleConstraint::SolveVelocityConstraint(float inDeltaTime)
 	return impulse;
 }
 
-bool VehicleConstraint::SolvePositionConstraint(float inDeltaTime, float inBaumgarte) 
+bool VehicleConstraint::SolvePositionConstraint(float inDeltaTime, float inBaumgarte)
 {
 	bool impulse = false;
 
@@ -545,12 +606,12 @@ bool VehicleConstraint::SolvePositionConstraint(float inDeltaTime, float inBaumg
 
 #ifdef JPH_DEBUG_RENDERER
 
-void VehicleConstraint::DrawConstraint(DebugRenderer *inRenderer) const 
+void VehicleConstraint::DrawConstraint(DebugRenderer *inRenderer) const
 {
 	mController->Draw(inRenderer);
 }
 
-void VehicleConstraint::DrawConstraintLimits(DebugRenderer *inRenderer) const 
+void VehicleConstraint::DrawConstraintLimits(DebugRenderer *inRenderer) const
 {
 }
 
@@ -567,8 +628,10 @@ void VehicleConstraint::SaveState(StateRecorder &inStream) const
 		inStream.Write(w->mAngularVelocity);
 		inStream.Write(w->mAngle);
 		inStream.Write(w->mContactBodyID); // Used by MotorcycleController::PreCollide
+		inStream.Write(w->mContactPosition); // Used by VehicleCollisionTester::PredictContactProperties
 		inStream.Write(w->mContactNormal); // Used by MotorcycleController::PreCollide
 		inStream.Write(w->mContactLateral); // Used by MotorcycleController::PreCollide
+		inStream.Write(w->mSuspensionLength); // Used by VehicleCollisionTester::PredictContactProperties
 
 		w->mSuspensionPart.SaveState(inStream);
 		w->mSuspensionMaxUpPart.SaveState(inStream);
@@ -578,6 +641,7 @@ void VehicleConstraint::SaveState(StateRecorder &inStream) const
 
 	inStream.Write(mPitchRollRotationAxis); // When rotation is too small we use last frame so we need to store it
 	mPitchRollPart.SaveState(inStream);
+	inStream.Write(mCurrentStep);
 }
 
 void VehicleConstraint::RestoreState(StateRecorder &inStream)
@@ -591,8 +655,10 @@ void VehicleConstraint::RestoreState(StateRecorder &inStream)
 		inStream.Read(w->mAngularVelocity);
 		inStream.Read(w->mAngle);
 		inStream.Read(w->mContactBodyID);
+		inStream.Read(w->mContactPosition);
 		inStream.Read(w->mContactNormal);
 		inStream.Read(w->mContactLateral);
+		inStream.Read(w->mSuspensionLength);
 		w->mContactBody = nullptr; // No longer valid
 
 		w->mSuspensionPart.RestoreState(inStream);
@@ -603,6 +669,7 @@ void VehicleConstraint::RestoreState(StateRecorder &inStream)
 
 	inStream.Read(mPitchRollRotationAxis);
 	mPitchRollPart.RestoreState(inStream);
+	inStream.Read(mCurrentStep);
 }
 
 Ref<ConstraintSettings> VehicleConstraint::GetConstraintSettings() const

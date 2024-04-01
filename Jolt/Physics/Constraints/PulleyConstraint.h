@@ -23,7 +23,7 @@ public:
 	// See: ConstraintSettings::SaveBinaryState
 	virtual void				SaveBinaryState(StreamOut &inStream) const override;
 
-	/// Create an an instance of this constraint
+	/// Create an instance of this constraint
 	virtual TwoBodyConstraint *	Create(Body &inBody1, Body &inBody2) const override;
 
 	/// This determines in which space the constraint is setup, specified properties below should be in the specified space
@@ -41,7 +41,7 @@ public:
 	/// Fixed world point to which body 2 is connected (always world space)
 	RVec3						mFixedPoint2 = RVec3::sZero();
 
-	/// Ratio between the two line segments (see formula above), can be used to create a block and tackle 
+	/// Ratio between the two line segments (see formula above), can be used to create a block and tackle
 	float						mRatio = 1.0f;
 
 	/// The minimum length of the line segments (see formula above), use -1 to calculate the length based on the positions of the objects when the constraint is created.
@@ -68,6 +68,7 @@ public:
 	virtual EConstraintSubType	GetSubType() const override									{ return EConstraintSubType::Pulley; }
 	virtual void				NotifyShapeChanged(const BodyID &inBodyID, Vec3Arg inDeltaCOM) override;
 	virtual void				SetupVelocityConstraint(float inDeltaTime) override;
+	virtual void				ResetWarmStart() override;
 	virtual void				WarmStartVelocityConstraint(float inWarmStartImpulseRatio) override;
 	virtual bool				SolveVelocityConstraint(float inDeltaTime) override;
 	virtual bool				SolvePositionConstraint(float inDeltaTime, float inBaumgarte) override;

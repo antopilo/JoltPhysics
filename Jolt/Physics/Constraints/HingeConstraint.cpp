@@ -35,7 +35,7 @@ JPH_IMPLEMENT_SERIALIZABLE_VIRTUAL(HingeConstraintSettings)
 }
 
 void HingeConstraintSettings::SaveBinaryState(StreamOut &inStream) const
-{ 
+{
 	ConstraintSettings::SaveBinaryState(inStream);
 
 	inStream.Write(mSpace);
@@ -199,9 +199,12 @@ void HingeConstraint::CalculateMotorConstraintProperties(float inDeltaTime)
 		break;
 
 	case EMotorState::Position:
-		mMotorConstraintPart.CalculateConstraintPropertiesWithSettings(inDeltaTime, *mBody1, *mBody2, mA1, 0.0f, CenterAngleAroundZero(mTheta - mTargetAngle), mMotorSettings.mSpringSettings);
+		if (mMotorSettings.mSpringSettings.HasStiffness())
+			mMotorConstraintPart.CalculateConstraintPropertiesWithSettings(inDeltaTime, *mBody1, *mBody2, mA1, 0.0f, CenterAngleAroundZero(mTheta - mTargetAngle), mMotorSettings.mSpringSettings);
+		else
+			mMotorConstraintPart.Deactivate();
 		break;
-	}	
+	}
 }
 
 void HingeConstraint::SetupVelocityConstraint(float inDeltaTime)
@@ -214,6 +217,14 @@ void HingeConstraint::SetupVelocityConstraint(float inDeltaTime)
 	CalculateA1AndTheta();
 	CalculateRotationLimitsConstraintProperties(inDeltaTime);
 	CalculateMotorConstraintProperties(inDeltaTime);
+}
+
+void HingeConstraint::ResetWarmStart()
+{
+	mMotorConstraintPart.Deactivate();
+	mPointConstraintPart.Deactivate();
+	mRotationConstraintPart.Deactivate();
+	mRotationLimitsConstraintPart.Deactivate();
 }
 
 void HingeConstraint::WarmStartVelocityConstraint(float inWarmStartImpulseRatio)
@@ -232,6 +243,13 @@ float HingeConstraint::GetSmallestAngleToLimit() const
 	return abs(dist_to_min) < abs(dist_to_max)? dist_to_min : dist_to_max;
 }
 
+bool HingeConstraint::IsMinLimitClosest() const
+{
+	float dist_to_min = CenterAngleAroundZero(mTheta - mLimitsMin);
+	float dist_to_max = CenterAngleAroundZero(mTheta - mLimitsMax);
+	return abs(dist_to_min) < abs(dist_to_max);
+}
+
 bool HingeConstraint::SolveVelocityConstraint(float inDeltaTime)
 {
 	// Solve motor
@@ -245,7 +263,7 @@ bool HingeConstraint::SolveVelocityConstraint(float inDeltaTime)
 				float max_lambda = mMaxFrictionTorque * inDeltaTime;
 				motor = mMotorConstraintPart.SolveVelocityConstraint(*mBody1, *mBody2, mA1, -max_lambda, max_lambda);
 				break;
-			}	
+			}
 
 		case EMotorState::Velocity:
 		case EMotorState::Position:
@@ -270,7 +288,7 @@ bool HingeConstraint::SolveVelocityConstraint(float inDeltaTime)
 			min_lambda = -FLT_MAX;
 			max_lambda = FLT_MAX;
 		}
-		else if (GetSmallestAngleToLimit() < 0.0f)
+		else if (IsMinLimitClosest())
 		{
 			min_lambda = 0.0f;
 			max_lambda = FLT_MAX;
@@ -356,7 +374,7 @@ void HingeConstraint::SaveState(StateRecorder &inStream) const
 
 	inStream.Write(mMotorState);
 	inStream.Write(mTargetAngularVelocity);
-	inStream.Write(mTargetAngle);	
+	inStream.Write(mTargetAngle);
 }
 
 void HingeConstraint::RestoreState(StateRecorder &inStream)
@@ -394,13 +412,13 @@ Ref<ConstraintSettings> HingeConstraint::GetConstraintSettings() const
 }
 
 Mat44 HingeConstraint::GetConstraintToBody1Matrix() const
-{ 
-	return Mat44(Vec4(mLocalSpaceHingeAxis1, 0), Vec4(mLocalSpaceNormalAxis1, 0), Vec4(mLocalSpaceHingeAxis1.Cross(mLocalSpaceNormalAxis1), 0), Vec4(mLocalSpacePosition1, 1)); 
+{
+	return Mat44(Vec4(mLocalSpaceHingeAxis1, 0), Vec4(mLocalSpaceNormalAxis1, 0), Vec4(mLocalSpaceHingeAxis1.Cross(mLocalSpaceNormalAxis1), 0), Vec4(mLocalSpacePosition1, 1));
 }
 
 Mat44 HingeConstraint::GetConstraintToBody2Matrix() const
-{ 
-	return Mat44(Vec4(mLocalSpaceHingeAxis2, 0), Vec4(mLocalSpaceNormalAxis2, 0), Vec4(mLocalSpaceHingeAxis2.Cross(mLocalSpaceNormalAxis2), 0), Vec4(mLocalSpacePosition2, 1)); 
+{
+	return Mat44(Vec4(mLocalSpaceHingeAxis2, 0), Vec4(mLocalSpaceNormalAxis2, 0), Vec4(mLocalSpaceHingeAxis2.Cross(mLocalSpaceNormalAxis2), 0), Vec4(mLocalSpacePosition2, 1));
 }
 
 JPH_NAMESPACE_END

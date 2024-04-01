@@ -29,6 +29,14 @@ uint SoftBodyShape::GetSubShapeIDBits() const
 	return 32 - CountLeadingZeros(n);
 }
 
+uint32 SoftBodyShape::GetFaceIndex(const SubShapeID &inSubShapeID) const
+{
+	SubShapeID remainder;
+	uint32 face_index = inSubShapeID.PopID(GetSubShapeIDBits(), remainder);
+	JPH_ASSERT(remainder.IsEmpty());
+	return face_index;
+}
+
 AABox SoftBodyShape::GetLocalBounds() const
 {
 	return mSoftBodyMotionProperties->GetLocalBounds();
@@ -106,9 +114,9 @@ void SoftBodyShape::CollidePoint(Vec3Arg inPoint, const SubShapeIDCreator &inSub
 	sCollidePointUsingRayCast(*this, inPoint, inSubShapeIDCreator, ioCollector, inShapeFilter);
 }
 
-void SoftBodyShape::CollideSoftBodyVertices(Mat44Arg inCenterOfMassTransform, Array<SoftBodyVertex> &ioVertices, float inDeltaTime, Vec3Arg inDisplacementDueToGravity, int inCollidingShapeIndex) const
+void SoftBodyShape::CollideSoftBodyVertices(Mat44Arg inCenterOfMassTransform, Vec3Arg inScale, SoftBodyVertex *ioVertices, uint inNumVertices, float inDeltaTime, Vec3Arg inDisplacementDueToGravity, int inCollidingShapeIndex) const
 {
-	JPH_ASSERT(false, "Should not be called");
+	/* Not implemented */
 }
 
 const PhysicsMaterial *SoftBodyShape::GetMaterial(const SubShapeID &inSubShapeID) const
@@ -218,7 +226,7 @@ int SoftBodyShape::GetTrianglesNext(GetTrianglesContext &ioContext, int inMaxTri
 
 Shape::Stats SoftBodyShape::GetStats() const
 {
-	return Stats(sizeof(this), (uint)mSoftBodyMotionProperties->GetFaces().size());
+	return Stats(sizeof(*this), (uint)mSoftBodyMotionProperties->GetFaces().size());
 }
 
 float SoftBodyShape::GetVolume() const

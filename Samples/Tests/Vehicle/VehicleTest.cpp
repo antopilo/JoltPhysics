@@ -17,9 +17,9 @@
 #include <Utils/Log.h>
 #include <Renderer/DebugRendererImp.h>
 
-JPH_IMPLEMENT_RTTI_VIRTUAL(VehicleTest) 
-{ 
-	JPH_ADD_BASE_CLASS(VehicleTest, Test) 
+JPH_IMPLEMENT_RTTI_VIRTUAL(VehicleTest)
+{
+	JPH_ADD_BASE_CLASS(VehicleTest, Test)
 }
 
 const char *VehicleTest::sScenes[] =
@@ -28,6 +28,7 @@ const char *VehicleTest::sScenes[] =
 	"Flat With Slope",
 	"Steep Slope",
 	"Step",
+	"Dynamic Step",
 	"Playground",
 	"Terrain1",
 };
@@ -85,6 +86,19 @@ void VehicleTest::Initialize()
 		step.SetFriction(1.0f);
 		mBodyInterface->AddBody(step.GetID(), EActivation::DontActivate);
 	}
+	else if (strcmp(sSceneName, "Dynamic Step") == 0)
+	{
+		// Flat test floor
+		Body &floor = *mBodyInterface->CreateBody(BodyCreationSettings(new BoxShape(Vec3(1000.0f, 1.0f, 1000.0f), 0.0f), RVec3(0.0f, -1.0f, 0.0f), Quat::sIdentity(), EMotionType::Static, Layers::NON_MOVING));
+		floor.SetFriction(1.0f);
+		mBodyInterface->AddBody(floor.GetID(), EActivation::DontActivate);
+
+		// A dynamic body that acts as a step to test sleeping behavior
+		constexpr float cStepHeight = 0.05f;
+		Body &step = *mBodyInterface->CreateBody(BodyCreationSettings(new BoxShape(Vec3(15.0f, 0.5f * cStepHeight, 15.0f), 0.0f), RVec3(-2.0f, 0.5f * cStepHeight, 30.0f), Quat::sIdentity(), EMotionType::Dynamic, Layers::MOVING));
+		step.SetFriction(1.0f);
+		mBodyInterface->AddBody(step.GetID(), EActivation::Activate);
+	}
 	else if (strcmp(sSceneName, "Playground") == 0)
 	{
 		// Scene with hilly terrain and some objects to drive into
@@ -96,7 +110,7 @@ void VehicleTest::Initialize()
 		CreateWall();
 
 		CreateRubble();
-	}	
+	}
 	else
 	{
 		// Load scene
@@ -200,7 +214,7 @@ void VehicleTest::LoadRaceTrack(const char *inFileName)
 	// Open the track file
 	std::ifstream stream;
 	stream.open(inFileName, std::ifstream::in);
-	if (!stream.is_open()) 
+	if (!stream.is_open())
 		return;
 
 	// Ignore header line
@@ -264,7 +278,7 @@ void VehicleTest::PrePhysicsUpdate(const PreUpdateParams &inParams)
 
 void VehicleTest::CreateSettingsMenu(DebugUI *inUI, UIElement *inSubMenu)
 {
-	inUI->CreateTextButton(inSubMenu, "Select Scene", [this, inUI]() { 
+	inUI->CreateTextButton(inSubMenu, "Select Scene", [this, inUI]() {
 		UIElement *scene_name = inUI->CreateMenu();
 		for (uint i = 0; i < size(sScenes); ++i)
 			inUI->CreateTextButton(scene_name, sScenes[i], [this, i]() { sSceneName = sScenes[i]; RestartTest(); });

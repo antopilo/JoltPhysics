@@ -37,7 +37,7 @@ TEST_SUITE("MotionQualityLinearCastTests")
 
 		c.SimulateSingleStep();
 
-		// No collisions should be reported and the bodies should have moved according to their velocity (tunneling through eachother)
+		// No collisions should be reported and the bodies should have moved according to their velocity (tunneling through each other)
 		CHECK(listener.GetEntryCount() == 0);
 		CHECK_APPROX_EQUAL(box1.GetPosition(), cPos1 + cVelocity / cFrequency);
 		CHECK_APPROX_EQUAL(box1.GetLinearVelocity(), cVelocity);
@@ -149,7 +149,7 @@ TEST_SUITE("MotionQualityLinearCastTests")
 			{
 				// Only in the first step we will receive a validate callback since after this step the contact cache will be used
 				CHECK(listener.GetEntryCount() == 2);
-				CHECK(listener.Contains(LoggingContactListener::EType::Validate, box1.GetID(), box2.GetID())); 
+				CHECK(listener.Contains(LoggingContactListener::EType::Validate, box1.GetID(), box2.GetID()));
 			}
 			else
 				CHECK(listener.GetEntryCount() == 1);
@@ -330,7 +330,7 @@ TEST_SUITE("MotionQualityLinearCastTests")
 
 		c.SimulateSingleStep();
 
-		// No collisions should be reported and the bodies should have moved according to their velocity (tunneling through eachother)
+		// No collisions should be reported and the bodies should have moved according to their velocity (tunneling through each other)
 		CHECK(listener.GetEntryCount() == 0);
 		CHECK_APPROX_EQUAL(box1.GetPosition(), cPos1 + cVelocity / cFrequency);
 		CHECK_APPROX_EQUAL(box1.GetLinearVelocity(), cVelocity);

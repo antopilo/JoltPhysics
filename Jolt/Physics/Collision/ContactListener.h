@@ -28,8 +28,8 @@ public:
 
 	RVec3					mBaseOffset;						///< Offset to which all the contact points are relative
 	Vec3					mWorldSpaceNormal;					///< Normal for this manifold, direction along which to move body 2 out of collision along the shortest path
-	float					mPenetrationDepth;					///< Penetration depth (move shape 2 by this distance to resolve the collision)
-	SubShapeID				mSubShapeID1;						///< Sub shapes that formed this manifold (note that when multiple manifolds are combined because they're coplanar, we lose some information here because we only keep track of one sub shape pair that we encounter)
+	float					mPenetrationDepth;					///< Penetration depth (move shape 2 by this distance to resolve the collision). If this value is negative, this is a speculative contact point and may not actually result in a velocity change as during solving the bodies may not actually collide.
+	SubShapeID				mSubShapeID1;						///< Sub shapes that formed this manifold (note that when multiple manifolds are combined because they're coplanar, we lose some information here because we only keep track of one sub shape pair that we encounter, see description at Body::SetUseManifoldReduction)
 	SubShapeID				mSubShapeID2;
 	ContactPoints			mRelativeContactPointsOn1;			///< Contact points on the surface of shape 1 relative to mBaseOffset.
 	ContactPoints			mRelativeContactPointsOn2;			///< Contact points on the surface of shape 2 relative to mBaseOffset. If there's no penetration, this will be the same as mRelativeContactPointsOn1. If there is penetration they will be different.
@@ -47,8 +47,8 @@ public:
 	float					mInvMassScale2 = 1.0f;				///< Scale factor for the inverse mass of body 2 (0 = infinite mass, 1 = use original mass, 2 = body has half the mass). For the same contact pair, you should strive to keep the value the same over time.
 	float					mInvInertiaScale2 = 1.0f;			///< Scale factor for the inverse inertia of body 2 (usually same as mInvMassScale2)
 	bool					mIsSensor;							///< If the contact should be treated as a sensor vs body contact (no collision response)
-	Vec3					mRelativeSurfaceVelocity = Vec3::sZero(); ///< Relative surface velocity between the bodies (world space surface velocity of body 2 - world space surface velocity of body 1), can be used to create a conveyor belt effect
-	Vec3					mRelativeAngularSurfaceVelocity = Vec3::sZero(); ///< Relative angular surface velocity between the bodies (world space angular surface velocity of body 2 - world space angular surface velocity of body 1). Note that this angular velocity is relative to the center of mass of body 1, so if you want it relative to body 2's center of mass you need to add body 2 angular velocity x (body 1 world space center of mass - body 2 world space center of mass) to mRelativeSurfaceVelocity.
+	Vec3					mRelativeLinearSurfaceVelocity = Vec3::sZero(); ///< Relative linear surface velocity between the bodies (world space surface velocity of body 2 - world space surface velocity of body 1), can be used to create a conveyor belt effect
+	Vec3					mRelativeAngularSurfaceVelocity = Vec3::sZero(); ///< Relative angular surface velocity between the bodies (world space angular surface velocity of body 2 - world space angular surface velocity of body 1). Note that this angular velocity is relative to the center of mass of body 1, so if you want it relative to body 2's center of mass you need to add body 2 angular velocity x (body 1 world space center of mass - body 2 world space center of mass) to mRelativeLinearSurfaceVelocity.
 };
 
 /// Return value for the OnContactValidate callback. Determines if the contact is being processed or not.
@@ -61,7 +61,7 @@ enum class ValidateResult
 	RejectAllContactsForThisBodyPair							///< Rejects this and any further contact points for this body pair
 };
 
-/// A listener class that receives collision contact events events.
+/// A listener class that receives collision contact events.
 /// It can be registered with the ContactConstraintManager (or PhysicsSystem).
 /// Note that contact listener callbacks are called from multiple threads at the same time when all bodies are locked, you're only allowed to read from the bodies and you can't change physics state.
 class ContactListener
@@ -71,13 +71,13 @@ public:
 	virtual					~ContactListener() = default;
 
 	/// Called after detecting a collision between a body pair, but before calling OnContactAdded and before adding the contact constraint.
-	/// If the function returns false, the contact will not be added and any other contacts between this body pair will not be processed.
+	/// If the function rejects the contact, the contact will not be added and any other contacts between this body pair will not be processed.
 	/// This function will only be called once per PhysicsSystem::Update per body pair and may not be called again the next update
 	/// if a contact persists and no new contact pairs between sub shapes are found.
 	/// This is a rather expensive time to reject a contact point since a lot of the collision detection has happened already, make sure you
 	/// filter out the majority of undesired body pairs through the ObjectLayerPairFilter that is registered on the PhysicsSystem.
 	/// Note that this callback is called when all bodies are locked, so don't use any locking functions!
-	/// The order of body 1 and 2 is undefined, but when one of the two bodies is dynamic it will be body 1.
+	/// Body 1 will have a motion type that is larger or equal than body 2's motion type (order from large to small: dynamic -> kinematic -> static). When motion types are equal, they are ordered by BodyID.
 	/// The collision result (inCollisionResult) is reported relative to inBaseOffset.
 	virtual ValidateResult	OnContactValidate([[maybe_unused]] const Body &inBody1, [[maybe_unused]] const Body &inBody2, [[maybe_unused]] RVec3Arg inBaseOffset, [[maybe_unused]] const CollideShapeResult &inCollisionResult) { return ValidateResult::AcceptAllContactsForThisBodyPair; }
 
